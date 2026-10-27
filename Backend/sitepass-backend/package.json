@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "start": "tsx src/server.ts",
-    "build": "prisma generate && tsc --noEmit",
+    "build": "prisma generate && tsc --noEmit && tsup",
     "bootstrap:dev-admin": "tsx scripts/bootstrap-dev-admin.ts",
     "email:test": "tsx scripts/test-brevo-email.ts",
     "email:preview": "tsx scripts/preview-welcome-email.ts",
@@ -48,6 +48,7 @@
     "@types/node": "^26.6.5",
     "nodemon": "^3.1.14",
     "prisma": "^7.10.1",
+    "tsup": "^9.0.0",
     "tsx": "^4.23.15",
     "typescript": "5.9.3"
   }
