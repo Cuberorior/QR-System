@@ -1,0 +1,2 @@
+import Brand from '../common/Brand';
+export default function PublicLayoutReal({ children }) { return <main className="public-shell"><div className="public-wrap"><div className="flex justify-between items-center mb-8"><Brand/><span className="badge badge-blue">SECURE VERIFICATION</span></div>{children}<p className="text-center text-xs text-slate-400 mt-10">Powered by AppZ Makers · Secure site verification</p></div></main>; }

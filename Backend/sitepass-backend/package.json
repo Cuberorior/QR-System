@@ -1,0 +1,54 @@
+{
+  "name": "sitepass-backend",
+  "version": "1.0.0",
+  "description": "SITEPASS QR-Based Construction Site Entry and Exit Verification Backend",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "start": "tsx src/server.ts",
+    "build": "tsc --noEmit",
+    "bootstrap:dev-admin": "tsx scripts/bootstrap-dev-admin.ts",
+    "email:test": "tsx scripts/test-brevo-email.ts",
+    "email:preview": "tsx scripts/preview-welcome-email.ts",
+    "test:email-service": "tsx scripts/test-brevo-email-service.ts",
+    "test:integration": "tsx scripts/test-backend-integration.ts",
+    "test:management": "tsx scripts/test-management-api.ts",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:studio": "prisma studio"
+  },
+  "keywords": [
+    "sitepass",
+    "construction",
+    "attendance",
+    "qr-code"
+  ],
+  "author": "AppZ Makers",
+  "license": "ISC",
+  "dependencies": {
+    "@prisma/adapter-mariadb": "^7.10.1",
+    "@prisma/client": "^7.10.1",
+    "bcrypt": "^6.0.0",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.6",
+    "dotenv": "^18.0.9",
+    "express": "^5.3.0",
+    "express-rate-limit": "^8.7.1",
+    "helmet": "^8.3.0",
+    "jsonwebtoken": "^9.0.3",
+    "mariadb": "^3.5.4",
+    "mysql2": "^3.24.6",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/bcrypt": "^6.0.0",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^26.6.5",
+    "nodemon": "^3.1.14",
+    "prisma": "^7.10.1",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  }
+}

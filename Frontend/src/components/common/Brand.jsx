@@ -1,0 +1,2 @@
+import { ShieldCheck } from 'lucide-react';
+export default function Brand({ light = false }) { return <div className="flex items-center gap-2"><span style={{background: light ? '#f59e0b' : '#102a56'}} className="w-9 h-9 rounded-xl grid place-items-center"><ShieldCheck size={21} color="white" /></span><span className="font-display font-bold text-lg" style={{color: light ? 'white' : '#102a56'}}>SITE<span style={{color:'#f59e0b'}}>PASS</span></span></div>; }

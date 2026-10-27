@@ -1,0 +1,2 @@
+ALTER TABLE `SafetyDeclaration`
+  ADD COLUMN `intendedAction` VARCHAR(191) NOT NULL DEFAULT 'ENTRY';

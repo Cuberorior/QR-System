@@ -1,0 +1,1 @@
+export default function EmptyState({ title='Nothing here yet', description='Records will appear here once available.' }) { return <div className="py-14 text-center text-slate-500"><p className="font-semibold">{title}</p><p className="text-sm mt-1">{description}</p></div>; }

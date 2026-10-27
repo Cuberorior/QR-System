@@ -1,0 +1,1 @@
+export default function StatusBadge({ status }) { const good = ['Active','Present','Completed','Approved']; const bad = ['Inactive','Rejected']; const tone = good.includes(status) ? 'badge-green' : bad.includes(status) ? 'badge-red' : 'badge-amber'; return <span className={`badge ${tone}`}>{status}</span>; }
