@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "start": "tsx src/server.ts",
-    "build": "tsc --noEmit",
+    "build": "prisma generate && tsc --noEmit",
     "bootstrap:dev-admin": "tsx scripts/bootstrap-dev-admin.ts",
     "email:test": "tsx scripts/test-brevo-email.ts",
     "email:preview": "tsx scripts/preview-welcome-email.ts",
