@@ -39,5 +39,6 @@ export const verificationApi = {
   updateSiteStatus: (siteId, isActive) => api.patch(`/admin/sites/${encodeURIComponent(siteId)}/status`, { isActive }),
   getDashboard: () => api.get('/admin/dashboard'),
   listAuditLogs: (params) => api.get('/admin/audit-logs', { params }),
+  exportAuditLogs: (params) => api.get('/admin/audit-logs', { params: { ...params, export: 'csv' }, responseType: 'blob' }),
 };
 export { TOKEN_KEY };

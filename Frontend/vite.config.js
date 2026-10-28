@@ -5,12 +5,15 @@ export default defineConfig({
   plugins: [react()],
 
   server: {
-    host: "127.0.0.1",
+    // Listen on the LAN so a phone on the same Wi-Fi/hotspot can open QR links.
+    host: "0.0.0.0",
     port: 5173,
 
     allowedHosts: [
-  "pride-katie-fair-fragrance.trycloudflare.com",
-],
+      "localhost",
+      "127.0.0.1",
+      "172.20.10.8",
+    ],
 
     proxy: {
       "/api": {

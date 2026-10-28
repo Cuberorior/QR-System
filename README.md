@@ -137,6 +137,18 @@ npm run dev
 
 The frontend runs at `http://localhost:5173`.
 
+### Open a QR link on a phone during local development
+
+`localhost` and `127.0.0.1` refer to the phone itself, not the development computer. For local phone testing:
+
+1. Connect the phone and computer to the same Wi-Fi network or phone hotspot.
+2. Find the computer's Wi-Fi IPv4 address with `ipconfig`.
+3. Set `VITE_PUBLIC_APP_URL` in `Frontend/.env` to `http://<computer-ip>:5173`.
+4. Restart Vite after changing `.env`.
+5. Generate/download a new QR code; an old printed QR still contains its old URL.
+
+The Vite server is configured to listen on the LAN. If Windows Firewall prompts for Node.js, allow it on the private network. For production or internet access, use a deployed HTTPS URL or start a new tunnel; temporary tunnel hostnames expire and old QR codes stop working.
+
 ### 3. Open the application
 
 - Administrator login: `http://localhost:5173/admin/login`
@@ -164,9 +176,10 @@ Copy [Frontend/.env.example](./Frontend/.env.example) to `Frontend/.env`:
 VITE_API_BASE_URL=/api
 VITE_PUBLIC_APP_URL=https://your-public-https-host.example.com
 VITE_DEFAULT_SITE_CODE=SITE-CMB-01
+VITE_ADMIN_TIMEZONE=Asia/Colombo
 ```
 
-`VITE_API_BASE_URL` may be `/api` when both applications share a host, or `http://localhost:5001/api` for separate local servers. `VITE_PUBLIC_APP_URL` is required by the QR-code page to build permanent public links. Use HTTPS in deployed environments because browser geolocation requires a secure context.
+`VITE_API_BASE_URL` may be `/api` when both applications share a host, or `http://localhost:5001/api` for separate local servers. `VITE_PUBLIC_APP_URL` is required by the QR-code page to build permanent public links. `VITE_ADMIN_TIMEZONE` controls the timezone shown on the Activity Logs page and defaults to the browser timezone when omitted. Use HTTPS in deployed environments because browser geolocation requires a secure context.
 
 ## Backend
 

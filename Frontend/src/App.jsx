@@ -24,7 +24,7 @@ import Attendance from './pages/admin/AttendanceSafety';
 import Visitors from './pages/admin/VisitorsSelfService';
 import SitesSecure from './pages/admin/SitesManagementGps';
 import QRCodesSecure from './pages/admin/QRCodesTwoPerSite';
-import ActivityLogs from './pages/admin/ActivityLogsReal';
+import ActivityLogs from './pages/admin/ActivityLogsRedesigned';
 import Settings from './pages/admin/BackendUnavailable';
 
 // Layout
