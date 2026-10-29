@@ -26,6 +26,15 @@ import SitesSecure from './pages/admin/SitesManagementGps';
 import QRCodesSecure from './pages/admin/QRCodesTwoPerSite';
 import ActivityLogs from './pages/admin/ActivityLogsRedesigned';
 import Settings from './pages/admin/BackendUnavailable';
+import DemoDashboard from './pages/admin/Dashboard';
+import DemoSites from './pages/admin/Sites';
+import DemoEmployees from './pages/admin/Employees';
+import DemoAttendance from './pages/admin/Attendance';
+import DemoVisitors from './pages/admin/Visitors';
+import DemoQRCodes from './pages/admin/QRCodes';
+import DemoActivityLogs from './pages/admin/ActivityLogs';
+import DemoSettings from './pages/admin/Settings';
+import { DEMO_MODE } from './services/demoMode';
 
 // Layout
 import AdminLayout from './components/layout/AdminLayout';
@@ -199,42 +208,42 @@ function AppRoutes() {
 
         <Route
           path="dashboard"
-          element={<Dashboard />}
+          element={DEMO_MODE ? <DemoDashboard /> : <Dashboard />}
         />
 
         <Route
           path="sites"
-          element={<SitesSecure />}
+          element={DEMO_MODE ? <DemoSites /> : <SitesSecure />}
         />
 
         <Route
           path="employees"
-          element={<Employees />}
+          element={DEMO_MODE ? <DemoEmployees /> : <Employees />}
         />
 
         <Route
           path="attendance"
-          element={<Attendance />}
+          element={DEMO_MODE ? <DemoAttendance /> : <Attendance />}
         />
 
         <Route
           path="visitors"
-          element={<Visitors />}
+          element={DEMO_MODE ? <DemoVisitors /> : <Visitors />}
         />
 
         <Route
           path="qr-codes"
-          element={<QRCodesSecure />}
+          element={DEMO_MODE ? <DemoQRCodes /> : <QRCodesSecure />}
         />
 
         <Route
           path="activity-logs"
-          element={<ActivityLogs />}
+          element={DEMO_MODE ? <DemoActivityLogs /> : <ActivityLogs />}
         />
 
         <Route
           path="settings"
-          element={<Settings />}
+          element={DEMO_MODE ? <DemoSettings /> : <Settings />}
         />
       </Route>
 

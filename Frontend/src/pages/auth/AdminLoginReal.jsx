@@ -4,9 +4,10 @@ import { Eye, EyeOff, LockKeyhole, ArrowRight } from 'lucide-react';
 import Brand from '../../components/common/Brand';
 import { useAuth } from '../../context/AuthContext';
 import { toast } from 'sonner';
+import { DEMO_MODE } from '../../services/demoMode';
 
 export default function AdminLoginReal() {
-  const [form, setForm] = useState({ email: '', password: '' });
+  const [form, setForm] = useState({ email: DEMO_MODE ? 'admin@sitepass.lk' : '', password: DEMO_MODE ? 'demo1234' : '' });
   const [show, setShow] = useState(false); const [loading, setLoading] = useState(false);
   const { login } = useAuth(); const nav = useNavigate();
   const submit = async (event) => { event.preventDefault(); setLoading(true); try { await login(form); toast.success('Signed in successfully'); nav('/admin/dashboard'); } catch (error) { toast.error(error.message); } finally { setLoading(false); } };

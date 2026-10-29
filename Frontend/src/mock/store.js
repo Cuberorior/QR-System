@@ -14,6 +14,10 @@ export const mockStore = {
   ],
   visitors: [{ id: 'VIS-2048', name: 'Sanjay Wijesinghe', phone: '+94 75 442 1900', organization: 'BuildRight Supplies', purpose: 'Material delivery', siteId: 'SITE-CMB-01', registeredAt: 'Today, 09:12 AM', approval: 'Pending Approval', departure: null }],
   administrators: [{ id: 'ADM-001', name: 'Amara Perera', email: 'amara@sitepass.lk', role: 'ADMIN', status: 'Active', siteId: 'SITE-CMB-01' }],
+  activityLogs: [
+    { id: 'log-1', createdAt: new Date().toISOString(), actorName: 'Amara Perera', actorType: 'ADMIN', actorReference: 'ADM-001', actionLabel: 'Approved visitor registration', entityLabel: 'VIS-2048', category: 'Visitor', siteName: 'Colombo Construction Site', siteCode: 'SITE-CMB-01', details: { mode: 'demo' } },
+    { id: 'log-2', createdAt: new Date(Date.now() - 3600000).toISOString(), actorName: 'System', actorType: 'SYSTEM', actorReference: 'SITEPASS', actionLabel: 'Attendance verified', entityLabel: 'EMP001 · Entry', category: 'Attendance', siteName: 'Colombo Construction Site', siteCode: 'SITE-CMB-01', details: { mode: 'demo' } },
+  ],
 };
 
 const wait = (value, ms = 320) => new Promise((resolve) => setTimeout(() => resolve(value), ms));
