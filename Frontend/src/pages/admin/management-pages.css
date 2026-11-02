@@ -1,0 +1,28 @@
+.admin-main .content:has(.page-header) { max-width:1500px; padding:20px 22px 28px; color:#102d57; }
+.page-header { display:flex; flex-wrap:wrap; align-items:flex-start; justify-content:space-between; gap:18px; margin:0 0 15px; }
+.page-header h1 { margin:0; color:#102d57; font-family:'Space Grotesk',sans-serif; font-size:29px; line-height:1.2; letter-spacing:-.8px; font-weight:800; }
+.page-header p { margin:5px 0 0; color:#647895; font-size:14px; line-height:1.45; }
+.page-header-action { display:flex; flex-wrap:wrap; gap:8px; }
+.page-header-action > .btn-primary { min-height:39px; border-radius:8px; padding:0 14px; background:linear-gradient(135deg,#ff9719,#ef6e08); box-shadow:0 5px 12px #ed7b1822; font-size:13px; }
+.page-header-action .btn-soft { min-height:39px; border:1px solid #dce7f4; border-radius:8px; background:#fff; color:#173c66; font-size:13px; }
+.admin-main .content:has(.page-header) > .grid-kpi { grid-template-columns:repeat(3,minmax(0,1fr)); gap:11px; margin-bottom:12px; }
+.admin-main .content:has(.page-header) .grid-kpi .kpi { min-height:103px; padding:15px 18px; border:1px solid #e1eaf4; border-radius:10px; box-shadow:0 4px 15px #173b6b08; }
+.admin-main .content:has(.page-header) .grid-kpi .kpi p:first-child { color:#637c9c; font-size:13px; font-weight:700; }
+.admin-main .content:has(.page-header) .grid-kpi .kpi p:nth-child(2) { margin-top:4px; font-size:28px; color:#102d57; }
+.admin-main .content:has(.page-header) > .card,.admin-main .content:has(.page-header) > section.card { border-color:#e0eaf5; border-radius:12px; box-shadow:0 5px 17px #173b6b09; }
+.admin-main .content:has(.page-header) > .card.mt-5 { margin-top:12px; }
+.admin-main .content:has(.page-header) .card > .p-4,.admin-main .content:has(.page-header) .card > .border-b { padding:15px 17px; }
+.admin-main .content:has(.page-header) .field { min-height:39px; padding:8px 11px; border-color:#d4dfed; border-radius:7px; font-size:13px; }
+.admin-main .content:has(.page-header) .field:focus { border-color:#fa8b22; box-shadow:0 0 0 3px #ffab5e2e; }
+.admin-main .content:has(.page-header) label > span { color:#566e8e!important; font-size:11px!important; font-weight:800!important; }
+.admin-main .content:has(.page-header) h2 { color:#102d57!important; font-size:16px; font-weight:800!important; }
+.admin-main .content:has(.page-header) table th { background:#f8fbff; color:#708caf; font-size:10px; font-weight:800; padding:11px 13px; }
+.admin-main .content:has(.page-header) table td { color:#536a86; font-size:12px; padding:12px 13px; border-color:#edf2f7; }
+.admin-main .content:has(.page-header) table td b { color:#1a375c; font-weight:800; }
+.admin-main .content:has(.page-header) table td .text-xs { font-size:10px; }
+.admin-main .content:has(.page-header) .btn { border-radius:7px; font-size:12px; }
+.admin-main .content:has(.page-header) .btn-soft { background:#f4f8fd; color:#194673; }
+.admin-main .content:has(.page-header) .btn-danger { background:#fff0ef; color:#c4574b; }
+.admin-main .content:has(.page-header) .badge { font-size:11px; padding:5px 9px; }
+.admin-main .content:has(.page-header) .table-wrap + div { border-color:#e8eef5!important; }
+@media(max-width:760px) { .admin-main .content:has(.page-header) { padding:16px 12px 24px; }.page-header h1 { font-size:25px; }.page-header p { font-size:13px; }.page-header-action { width:100%; }.page-header-action > .btn { flex:1; }.admin-main .content:has(.page-header) > .grid-kpi { grid-template-columns:1fr; } }

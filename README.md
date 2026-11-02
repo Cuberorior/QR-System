@@ -50,6 +50,14 @@ This repository contains a React/Vite frontend, an Express/TypeScript backend, a
 
 The backend can use Brevo SMTP API delivery for employee welcome/access-code messages and visitor notifications. Email delivery attempts are stored in the database with status, retry, and error information.
 
+### Employee access codes
+
+- Employee access codes are generated automatically by the backend as exactly six numeric digits, such as `482731`.
+- The code is sent to the employee by email when the employee is created and whenever an administrator regenerates credentials.
+- Only a bcrypt hash is stored in the database; the plain access code is never stored in the employee record.
+- Employees use their `EMP-xxxxxx` Employee ID and six-digit access code after scanning the site's QR code.
+- Existing employees created with an older access-code format must have their credentials regenerated from **Admin > Employees** before using the six-digit format.
+
 ## Repository structure
 
 ```text
@@ -92,6 +100,47 @@ QR project/
 | Email | Brevo SMTP API |
 | Hosting | Vercel configuration is included for both frontend and backend |
 
+### Dependencies installed by `npm install`
+
+You do not need to install these packages globally. Run `npm install` once inside `Frontend` and once inside `Backend/sitepass-backend`; npm reads each local `package.json` and installs the correct versions.
+
+#### Frontend dependencies
+
+| Package | Purpose |
+| --- | --- |
+| `react`, `react-dom` | User interface |
+| `react-router-dom` | Client-side routes |
+| `axios` | Backend API requests |
+| `@tanstack/react-query` | API data fetching and caching |
+| `react-hook-form`, `@hookform/resolvers`, `zod` | Forms and validation |
+| `recharts` | Dashboard charts |
+| `lucide-react` | Icons |
+| `qrcode.react` | QR-code rendering |
+| `sonner` | Toast notifications |
+| `date-fns` | Date utilities |
+| `vite`, `@vitejs/plugin-react` | Development server and build |
+| `tailwindcss`, `postcss`, `autoprefixer` | CSS tooling |
+
+#### Backend dependencies
+
+| Package | Purpose |
+| --- | --- |
+| `express` | HTTP API server |
+| `typescript`, `tsx`, `tsup` | TypeScript development and bundling |
+| `@prisma/client`, `prisma` | Database access, schema, and migrations |
+| `@prisma/adapter-mariadb`, `mariadb`, `mysql2` | MySQL/MariaDB connectivity |
+| `bcrypt` | Password and access-code hashing |
+| `jsonwebtoken` | Administrator JWT authentication |
+| `zod` | Request validation |
+| `helmet` | HTTP security headers |
+| `cors` | Frontend/backend origin control |
+| `express-rate-limit` | Rate limiting |
+| `cookie-parser` | Cookie parsing |
+| `pdfkit` | PDF report generation |
+| `dotenv` | Environment variable loading |
+
+Node.js and npm are the only tools that need to be installed globally. Prisma, Vite, React, Express, and TypeScript are installed locally by the two `npm install` commands.
+
 ## Prerequisites
 
 - Node.js with npm. Node 20 or newer is recommended.
@@ -110,6 +159,36 @@ npm install
 ```
 
 ## Quick start
+
+The shortest complete first-time setup is:
+
+```powershell
+# 1. Install packages
+cd Frontend
+npm install
+cd ..\Backend\sitepass-backend
+npm install
+
+# 2. Create Backend/sitepass-backend/.env and configure the database variables
+
+# 3. Prepare the database and create a development administrator
+npm run db:generate
+npm run db:migrate
+npm run bootstrap:dev-admin
+
+# 4. Start the backend in this terminal
+npm run dev
+```
+
+Open a second terminal for the frontend:
+
+```powershell
+cd Frontend
+copy .env.example .env
+npm run dev
+```
+
+Then open `http://localhost:5173/admin/login` in a browser. The detailed database and environment setup is below.
 
 ### 1. Start the backend
 
@@ -144,8 +223,9 @@ The frontend runs at `http://localhost:5173`.
 1. Connect the phone and computer to the same Wi-Fi network or phone hotspot.
 2. Find the computer's Wi-Fi IPv4 address with `ipconfig`.
 3. Set `VITE_PUBLIC_APP_URL` in `Frontend/.env` to `http://<computer-ip>:5173`.
-4. Restart Vite after changing `.env`.
-5. Generate/download a new QR code; an old printed QR still contains its old URL.
+4. Keep `VITE_API_BASE_URL=/api` so Vite proxies the phone's API requests to the computer's backend.
+5. Restart Vite after changing `.env`.
+6. Generate/download a new QR code; an old printed QR still contains its old URL.
 
 The Vite server is configured to listen on the LAN. If Windows Firewall prompts for Node.js, allow it on the private network. For production or internet access, use a deployed HTTPS URL or start a new tunnel; temporary tunnel hostnames expire and old QR codes stop working.
 
@@ -174,12 +254,11 @@ Copy [Frontend/.env.example](./Frontend/.env.example) to `Frontend/.env`:
 
 ```dotenv
 VITE_API_BASE_URL=/api
-VITE_PUBLIC_APP_URL=https://your-public-https-host.example.com
-VITE_DEFAULT_SITE_CODE=SITE-CMB-01
+VITE_PUBLIC_APP_URL=http://localhost:5173
 VITE_ADMIN_TIMEZONE=Asia/Colombo
 ```
 
-`VITE_API_BASE_URL` may be `/api` when both applications share a host, or `http://localhost:5001/api` for separate local servers. `VITE_PUBLIC_APP_URL` is required by the QR-code page to build permanent public links. `VITE_ADMIN_TIMEZONE` controls the timezone shown on the Activity Logs page and defaults to the browser timezone when omitted. Use HTTPS in deployed environments because browser geolocation requires a secure context.
+For local development, use `VITE_API_BASE_URL=/api`. Vite proxies `/api` requests to the backend at `http://127.0.0.1:5001`, which also lets a phone on the same Wi-Fi use the computer's LAN address. If you run the frontend and backend on different hosts, use the full backend URL instead, such as `http://<computer-ip>:5001/api`. `VITE_PUBLIC_APP_URL` is required by the QR-code page to build public links. `VITE_ADMIN_TIMEZONE` controls the timezone shown on administrator pages and defaults to the browser timezone when omitted. Use HTTPS in deployed environments because browser geolocation requires a secure context.
 
 ## Backend
 
@@ -310,6 +389,12 @@ All API endpoints are under `/api`.
 
 Administrator endpoints require `Authorization: Bearer <jwt>`. Login tokens expire after 15 minutes and are held in browser session storage by the frontend.
 
+The administrator auth group also provides profile and password operations:
+
+- `GET /api/admin/auth/profile` - load the signed-in administrator profile
+- `PATCH /api/admin/auth/profile` - update the administrator name and email
+- `PATCH /api/admin/auth/password` - change the administrator password
+
 ## Testing and verification
 
 ```powershell
@@ -362,7 +447,7 @@ For a traditional Node host, run `npm run build` and start the API with `npm sta
 
 - The active configuration in [Frontend/src/App.jsx](./Frontend/src/App.jsx) uses the API-backed `*Real`, `*Gps`, `*Secure`, `*Automatic`, and `*SelfService` screens.
 - Older mock screens remain for demo/reference purposes and use in-memory data that resets on refresh.
-- The administrator settings screen currently indicates that some settings are unavailable in the backend.
+- The administrator Settings screen supports profile editing, password changes, and a browser-specific inactivity screen-lock timeout.
 - The backend requires both `DATABASE_URL` for Prisma CLI operations and individual `DATABASE_*` variables for the runtime adapter.
 - QR posters contain public site/action links, but employee credentials, GPS verification, and backend authorization remain required.
 

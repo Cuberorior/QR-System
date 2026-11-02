@@ -1,0 +1,44 @@
+import { useEffect, useState } from 'react';
+import { Building2, CheckCircle2, LocateFixed, MapPin, Power, Save, ShieldOff, Undo2 } from 'lucide-react';
+import { apiErrorMessage, verificationApi } from '../../services/api';
+import constructionHero from '../../assets/sitepass-construction-hero.png';
+import { toast } from 'sonner';
+import './site-settings.css';
+
+export default function SitesSingleSite() {
+  const [site, setSite] = useState(null); const [form, setForm] = useState(null); const [loading, setLoading] = useState(true); const [saving, setSaving] = useState(false);
+  const load = async () => { try { const list = await verificationApi.listSites(); const configured = list.data.sites?.[0]; if (!configured) throw new Error('No configured construction site was found.'); const detail = await verificationApi.getAdminSite(configured.id); setSite(detail.data.site); setForm(detail.data.site); } catch (e) { toast.error(apiErrorMessage(e, 'Unable to load the configured site.')); } finally { setLoading(false); } };
+  useEffect(() => { load(); }, []);
+  const update = (field, value) => setForm(current => ({ ...current, [field]: value }));
+  const cancel = () => setForm(site);
+  const save = async e => { e.preventDefault(); if (!form.geofencingEnabled && !window.confirm('Disable GPS verification for this site?')) return; setSaving(true); try { const { data } = await verificationApi.updateSite(site.id, { name: form.name, location: form.location, coordinates: { latitude: Number(form.latitude), longitude: Number(form.longitude) }, geofenceRadius: Number(form.geofenceRadius), geofencingEnabled: form.geofencingEnabled, isActive: form.isActive, ...(form.geofencingEnabled ? {} : { confirmDisableGps: true }) }); setForm(data.site); setSite(data.site); toast.success('Site settings saved.'); } catch (e) { toast.error(apiErrorMessage(e, 'Unable to save site settings.')); } finally { setSaving(false); } };
+  if (loading || !form) return <main className="content site-settings-page"><div className="site-settings-skeleton" role="status">Loading construction site…</div></main>;
+  return <main className="content site-settings-page">
+    <header className="site-page-heading"><h1>Construction Site</h1><p>Manage your configured SITEPASS construction site and GPS verification settings.</p></header>
+    <section className="site-summary-card" aria-label="Configured construction site">
+      <img src={constructionHero} className="site-summary-image" alt="" decoding="async" />
+      <div className="site-summary-decoration" aria-hidden="true" />
+      <div className="site-summary-content"><span className="site-summary-icon"><Building2 size={31} /></span><div><h2>{form.name}</h2><div className="site-summary-meta"><span>{form.siteCode}</span><i/><span className={`site-status-pill ${form.isActive ? 'active' : ''}`}><b/>{form.isActive ? 'Active' : 'Inactive'}</span></div><p><MapPin size={17}/>{form.location || 'Location not specified'}</p></div></div>
+    </section>
+    <form onSubmit={save} className="site-settings-form">
+      <section className="site-settings-card"><SectionHeading icon={Building2} title="Site Details" description="Update the basic details of your construction site." tone="orange" /><div className="site-details-grid"><Field label="Site name" value={form.name} onChange={value => update('name', value)} /><Field label="Address / location" value={form.location || ''} onChange={value => update('location', value)} /><Field label="Latitude" type="number" value={form.latitude ?? ''} onChange={value => update('latitude', value)} /><Field label="Longitude" type="number" value={form.longitude ?? ''} onChange={value => update('longitude', value)} /></div></section>
+      <section className="site-settings-card gps-settings-card"><div className="site-card-topline"><SectionHeading icon={LocateFixed} title="GPS verification settings" description="Configure GPS-based geofence verification for site access." tone="orange" /><Toggle checked={!!form.geofencingEnabled} label="GPS verification" onChange={checked => update('geofencingEnabled', checked)} /></div><div className="gps-controls-grid"><div className={`gps-state ${form.geofencingEnabled ? 'enabled' : 'disabled'}`}><span>{form.geofencingEnabled ? <CheckCircle2 size={23}/> : <ShieldOff size={23}/>}</span><p>Current status: <strong>{form.geofencingEnabled ? 'ON' : 'OFF'}</strong></p></div><Field label="Geofence radius (metres)" type="number" min="10" max="10000" disabled={!form.geofencingEnabled} value={form.geofenceRadius ?? 100} onChange={value => update('geofenceRadius', value)} /></div></section>
+      <section className="site-settings-card site-status-card"><SectionHeading icon={Power} title="Site status" description="Control whether this construction site is active in SITEPASS." tone="green" /><div className="site-status-control"><span className={`site-status-pill ${form.isActive ? 'active' : ''}`}><b/>{form.isActive ? 'Active' : 'Inactive'}</span><i/><Toggle checked={!!form.isActive} label="Site status" onChange={checked => update('isActive', checked)} /></div></section>
+      <footer className="site-settings-actions"><button type="button" className="site-cancel-button" disabled={saving} onClick={cancel}><Undo2 size={17}/>Cancel</button><button className="site-save-button" disabled={saving}><Save size={18}/>{saving ? 'Saving…' : 'Save Changes'}</button></footer>
+    </form>
+  </main>;
+  /*
+  return <main className="content"><PageHeader title="Construction site" description="Manage the configured SITEPASS construction site and GPS verification settings." />{loading || !form ? <div className="card p-6 text-slate-500">Loading site…</div> : <form className="card p-6 grid sm:grid-cols-2 gap-4" onSubmit={save}><div className="sm:col-span-2"><div className="flex items-center gap-3"><div><h2 className="font-bold text-[#102a56]">{form.name}</h2><p className="text-sm text-slate-500">{form.siteCode} · This is the only site managed by SITEPASS.</p></div><span className={`badge ml-auto ${form.isActive ? 'badge-green' : 'badge-amber'}`}>{form.isActive ? 'Active' : 'Inactive'}</span></div></div><Field label="Site name" value={form.name} onChange={v => setForm({ ...form, name: v })} /><Field label="Address / location" value={form.location || ''} onChange={v => setForm({ ...form, location: v })} /><Field label="Latitude" type="number" value={form.latitude ?? ''} onChange={v => setForm({ ...form, latitude: v })} /><Field label="Longitude" type="number" value={form.longitude ?? ''} onChange={v => setForm({ ...form, longitude: v })} /><div className="sm:col-span-2 border border-slate-200 rounded-xl p-5"><div className="flex justify-between gap-4"><div><h3 className="font-bold text-[#102a56] flex gap-2 items-center">{form.geofencingEnabled ? <ShieldCheck className="text-emerald-600" /> : <ShieldOff className="text-amber-600" />}GPS verification settings</h3><p className="text-sm text-slate-500 mt-1">Current status: <strong>{form.geofencingEnabled ? 'ON' : 'OFF'}</strong></p></div><input type="checkbox" className="h-5 w-5 accent-teal-600" checked={!!form.geofencingEnabled} onChange={e => setForm({ ...form, geofencingEnabled: e.target.checked })} /></div><label className="block mt-4"><span className="text-sm font-semibold">Geofence radius (metres)</span><input required min="10" max="10000" type="number" className="field mt-2" disabled={!form.geofencingEnabled} value={form.geofenceRadius ?? 100} onChange={e => setForm({ ...form, geofenceRadius: e.target.value })} /></label></div><label><span className="text-sm font-semibold">Site status</span><select className="field mt-2" value={form.isActive ? 'true' : 'false'} onChange={e => setForm({ ...form, isActive: e.target.value === 'true' })}><option value="true">Active</option><option value="false">Inactive</option></select></label><button className="btn btn-primary sm:col-span-2" disabled={saving}><Save size={16} />{saving ? 'Saving…' : 'Save site settings'}</button></form>}</main>;
+  */
+}
+function Field({ label, value, onChange, type = 'text', min, max, disabled = false }) {
+  return <label className="site-field"><span>{label}</span><input required className="field" type={type} min={min} max={max} step={type === 'number' ? 'any' : undefined} disabled={disabled} value={value} onChange={event => onChange(event.target.value)} /></label>;
+}
+
+function SectionHeading({ icon: Icon, title, description, tone }) {
+  return <div className="site-card-heading"><span className={`site-card-icon ${tone}`}><Icon size={25}/></span><div><h2>{title}</h2><p>{description}</p></div></div>;
+}
+
+function Toggle({ checked, onChange, label }) {
+  return <label className="site-toggle"><input type="checkbox" checked={checked} onChange={event => onChange(event.target.checked)} aria-label={label}/><span><i/></span></label>;
+}

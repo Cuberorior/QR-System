@@ -1,15 +1,91 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, LockKeyhole, ArrowRight } from 'lucide-react';
+import { ArrowRight, ChartNoAxesColumnIncreasing, Eye, EyeOff, LoaderCircle, LockKeyhole, Mail, ShieldCheck, Users } from 'lucide-react';
 import Brand from '../../components/common/Brand';
 import { useAuth } from '../../context/AuthContext';
 import { toast } from 'sonner';
-import { DEMO_MODE } from '../../services/demoMode';
+import constructionImage from '../../assets/sitepass-login-construction.png';
+import './admin-login.css';
 
 export default function AdminLoginReal() {
-  const [form, setForm] = useState({ email: DEMO_MODE ? 'admin@sitepass.lk' : '', password: DEMO_MODE ? 'demo1234' : '' });
-  const [show, setShow] = useState(false); const [loading, setLoading] = useState(false);
-  const { login } = useAuth(); const nav = useNavigate();
-  const submit = async (event) => { event.preventDefault(); setLoading(true); try { await login(form); toast.success('Signed in successfully'); nav('/admin/dashboard'); } catch (error) { toast.error(error.message); } finally { setLoading(false); } };
-  return <div className="min-h-screen grid lg:grid-cols-2 bg-white"><div className="hidden lg:flex bg-[#102a56] p-14 text-white flex-col justify-between"><div><Brand light/><div className="mt-28 max-w-lg"><p className="text-amber-400 uppercase tracking-[.25em] text-xs font-bold">Construction workforce operations</p><h1 className="font-display text-6xl font-bold leading-tight mt-5">Every arrival<br/>starts with<br/><span className="text-amber-400">confidence.</span></h1><p className="text-blue-100/70 mt-7 text-lg max-w-md">A simpler, safer way to manage people and presence across every construction site.</p></div></div><p className="text-blue-200/60 text-sm">© 2025 AppZ Makers (Pvt) Ltd</p></div><div className="flex items-center justify-center p-6"><div className="w-full max-w-md"><div className="lg:hidden mb-12"><Brand/></div><div className="mb-9"><span className="w-12 h-12 rounded-2xl bg-blue-50 grid place-items-center text-[#102a56]"><LockKeyhole/></span><h2 className="font-display text-3xl font-bold text-[#102a56] mt-5">Welcome back</h2><p className="text-slate-500 mt-2">Secure access for construction site administrators.</p></div><form onSubmit={submit} className="space-y-5"><label className="block"><span className="text-sm font-semibold">Email address</span><input required className="field mt-2" type="email" value={form.email} onChange={e=>setForm({...form,email:e.target.value})}/></label><label className="block"><span className="text-sm font-semibold">Password</span><div className="relative mt-2"><input required className="field pr-11" type={show?'text':'password'} value={form.password} onChange={e=>setForm({...form,password:e.target.value})}/><button type="button" className="absolute right-3 top-3 text-slate-400" onClick={()=>setShow(!show)}>{show?<EyeOff size={18}/>:<Eye size={18}/>}</button></div></label><button className="btn btn-primary w-full" disabled={loading}>{loading?'Signing in…':<>Sign in <ArrowRight size={16}/></>}</button></form><p className="text-center text-xs text-slate-400 mt-8">Use your administrator account. Credentials are never embedded in the frontend.</p></div></div></div>;
+  const [form, setForm] = useState({ email: '', password: '' });
+  const [show, setShow] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const { login } = useAuth();
+  const nav = useNavigate();
+
+  const submit = async (event) => {
+    event.preventDefault();
+    if (loading) return;
+    setError('');
+    setLoading(true);
+    try {
+      await login(form);
+      toast.success('Signed in successfully');
+      nav('/admin/dashboard');
+    } catch (failure) {
+      setError(failure.message || 'Unable to sign in. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <main className="sitepass-login">
+      <section className="login-story" aria-labelledby="login-story-title">
+        <img className="login-construction" src={constructionImage} alt="" fetchpriority="high" />
+        <div className="login-story-shade" aria-hidden="true" />
+        <div className="login-orange-top" aria-hidden="true" />
+        <div className="login-orange-bottom" aria-hidden="true" />
+        <div className="login-story-content">
+          <div className="login-brand"><Brand light /></div>
+          <div className="login-story-copy">
+            <p className="login-eyebrow">Construction workforce operations</p>
+            <h1 id="login-story-title">Manage your <br />construction site <br />with <span>confidence.</span></h1>
+            <p className="login-story-description">Secure, centralized administration for people, access, and presence at your construction site.</p>
+            <ul className="login-features">
+              <li><span><Users aria-hidden="true" /></span><p>Manage<br />workforce</p></li>
+              <li><span><ShieldCheck aria-hidden="true" /></span><p>Control<br />site access</p></li>
+              <li><span><ChartNoAxesColumnIncreasing aria-hidden="true" /></span><p>Track<br />site presence</p></li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section className="login-form-panel" aria-labelledby="login-title">
+        <div className="login-mobile-brand"><Brand /></div>
+        <div className="login-card">
+          <span className="login-lock-icon"><LockKeyhole size={30} strokeWidth={1.8} aria-hidden="true" /></span>
+          <h2 id="login-title">Welcome back</h2>
+          <p className="login-intro">Sign in to your SITEPASS administrator account to securely manage your construction site.</p>
+
+          <form onSubmit={submit} className="login-form" aria-busy={loading}>
+            <div className="login-field-group">
+              <label htmlFor="admin-email"><Mail size={19} aria-hidden="true" />Email address</label>
+              <input id="admin-email" name="email" required type="email" autoComplete="username" placeholder="Enter your email address" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} disabled={loading} />
+            </div>
+            <div className="login-field-group">
+              <label htmlFor="admin-password"><LockKeyhole size={19} aria-hidden="true" />Password</label>
+              <div className="login-password-field">
+                <input id="admin-password" name="password" required type={show ? 'text' : 'password'} autoComplete="current-password" placeholder="Enter your password" value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} disabled={loading} />
+                <button type="button" className="login-password-toggle" aria-label={show ? 'Hide password' : 'Show password'} aria-controls="admin-password" aria-pressed={show} onClick={() => setShow(!show)} disabled={loading}>
+                  {show ? <EyeOff size={21} /> : <Eye size={21} />}
+                </button>
+              </div>
+            </div>
+            {error && <p className="login-error" role="alert">{error}</p>}
+            <button className="login-submit" type="submit" disabled={loading}>
+              {loading ? <><LoaderCircle className="login-spinner" size={20} aria-hidden="true" />Signing in...</> : <>Sign in <ArrowRight size={21} aria-hidden="true" /></>}
+            </button>
+          </form>
+
+          <div className="login-security-note">
+            <ShieldCheck size={30} strokeWidth={1.8} aria-hidden="true" />
+            <p>Secure administrator access.<br />Use your assigned SITEPASS account to sign in.</p>
+          </div>
+        </div>
+      </section>
+    </main>
+  );
 }

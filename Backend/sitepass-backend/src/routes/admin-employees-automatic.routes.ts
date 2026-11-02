@@ -1,27 +1,28 @@
 import bcrypt from "bcrypt";
-import { randomBytes } from "node:crypto";
 import { Router } from "express";
 import rateLimit from "express-rate-limit";
 import { z } from "zod";
 import { prisma } from "../config/prisma";
 import { requireAdmin } from "../middleware/admin-auth";
 import { sendBrevoEmail, welcomeEmail } from "../services/brevo-email";
+import { generateEmployeeAccessCode } from "../utils/access-code";
+import { getConfiguredSite } from "../utils/single-site";
 
 const router = Router();
 router.use(requireAdmin);
 const email = z.string().trim().email().max(191);
 const phone = z.string().trim().max(50).optional().or(z.literal(""));
-const createSchema = z.object({ fullName: z.string().trim().min(1).max(191), email, phone, siteCode: z.string().trim().min(1).max(100) }).strict();
-const updateSchema = z.object({ fullName: z.string().trim().min(1).max(191).optional(), email: email.optional().or(z.literal("")), phone, siteCode: z.string().trim().min(1).max(100).optional(), isActive: z.boolean().optional() }).strict();
+const createSchema = z.object({ fullName: z.string().trim().min(1).max(191), email, phone, siteCode: z.string().trim().min(1).max(100).optional() }).strict();
+const updateSchema = z.object({ fullName: z.string().trim().min(1).max(191).optional(), email: email.optional().or(z.literal("")), phone, isActive: z.boolean().optional() }).strict();
 const statusSchema = z.object({ isActive: z.boolean() });
-const legacyResetSchema = z.object({ accessCode: z.string().min(8).max(200) });
+const legacyResetSchema = z.object({ accessCode: z.string().regex(/^\d{6}$/, "Access code must be exactly 6 digits.") });
 const publicEmployeeSelect = { id: true, employeeCode: true, fullName: true, email: true, phone: true, siteId: true, isActive: true, createdAt: true, updatedAt: true } as const;
 const resendLimit = rateLimit({ windowMs: 15 * 60 * 1000, limit: 5, standardHeaders: "draft-8", legacyHeaders: false, message: { success: false, message: "Too many access-code resend attempts. Please try again later." } });
 
 function isUnique(error: unknown) { return typeof error === "object" && error !== null && "code" in error && error.code === "P2002"; }
-function newAccessCode() { return randomBytes(12).toString("base64url").slice(0, 16); }
+function newAccessCode() { return generateEmployeeAccessCode(); }
 function idempotencyKey(req: any) { const value = req.header("idempotency-key"); return typeof value === "string" && /^[A-Za-z0-9._-]{16,191}$/.test(value) ? value : null; }
-async function siteFor(siteCode: string) { return prisma.constructionSite.findUnique({ where: { siteCode }, select: { id: true, siteCode: true, name: true, isActive: true } }); }
+async function siteFor(_siteCode?: string) { return getConfiguredSite(); }
 async function emailStatus(employeeId: string) { return prisma.emailDelivery.findFirst({ where: { employeeId }, orderBy: { createdAt: "desc" }, select: { id: true, status: true, brevoMessageId: true, attemptCount: true, lastError: true, createdAt: true, updatedAt: true } }); }
 async function responseEmployee(employee: any) { return { ...employee, emailDelivery: await emailStatus(employee.id) }; }
 async function sendAndRecord(deliveryId: string, input: Parameters<typeof sendBrevoEmail>[0]) {
@@ -59,9 +60,9 @@ router.post("/", async (req, res) => {
   }
 });
 
-router.get("/", async (req, res) => { const parsed = z.string().trim().min(1).max(100).safeParse(req.query.siteCode); if (!parsed.success) return res.status(400).json({ success: false, message: "siteCode query parameter is required." }); const site = await siteFor(parsed.data); if (!site) return res.status(404).json({ success: false, message: "Construction site not found." }); const employees = await prisma.employee.findMany({ where: { siteId: site.id }, select: { ...publicEmployeeSelect, site: { select: { id: true, siteCode: true, name: true } } }, orderBy: { fullName: "asc" } }); const enriched = await Promise.all(employees.map(async employee => ({ ...employee, emailDelivery: await emailStatus(employee.id) }))); return res.json({ success: true, employees: enriched }); });
+router.get("/", async (_req, res, next) => { const site = await siteFor(); if (!site) return res.status(404).json({ success: false, message: "Configured construction site not found." }); const employees = await prisma.employee.findMany({ where: { siteId: site.id }, select: { ...publicEmployeeSelect, site: { select: { id: true, siteCode: true, name: true } } }, orderBy: { fullName: "asc" } }); const enriched = await Promise.all(employees.map(async employee => ({ ...employee, emailDelivery: await emailStatus(employee.id) }))); return res.json({ success: true, employees: enriched }); });
 router.get("/:employeeId", async (req, res) => { const employee = await prisma.employee.findUnique({ where: { id: req.params.employeeId }, select: { ...publicEmployeeSelect, site: { select: { id: true, siteCode: true, name: true } } } }); if (!employee) return res.status(404).json({ success: false, message: "Employee not found." }); return res.json({ success: true, employee: await responseEmployee(employee) }); });
-router.patch("/:employeeId", async (req, res) => { const parsed = updateSchema.safeParse(req.body); if (!parsed.success) return res.status(400).json({ success: false, message: "Invalid employee update.", errors: parsed.error.issues }); const existing = await prisma.employee.findUnique({ where: { id: req.params.employeeId }, select: { id: true, siteId: true } }); if (!existing) return res.status(404).json({ success: false, message: "Employee not found." }); let siteId: string | undefined; if (parsed.data.siteCode) { const site = await siteFor(parsed.data.siteCode); if (!site) return res.status(404).json({ success: false, message: "Construction site not found." }); if (!site.isActive) return res.status(409).json({ success: false, message: "Cannot assign an employee to an inactive site." }); siteId = site.id; } const updated = await prisma.$transaction(async tx => { const employee = await tx.employee.update({ where: { id: existing.id }, data: { fullName: parsed.data.fullName, email: parsed.data.email === undefined ? undefined : parsed.data.email || null, phone: parsed.data.phone === undefined ? undefined : parsed.data.phone || null, siteId, isActive: parsed.data.isActive }, select: publicEmployeeSelect }); await tx.auditLog.create({ data: { actorId: req.admin!.sub, actorType: "ADMINISTRATOR", action: "EMPLOYEE_UPDATED", entityType: "Employee", entityId: employee.id, details: { employeeCode: employee.employeeCode } } }); return employee; }); return res.json({ success: true, employee: updated }); });
+router.patch("/:employeeId", async (req, res) => { const parsed = updateSchema.safeParse(req.body); if (!parsed.success) return res.status(400).json({ success: false, message: "Invalid employee update.", errors: parsed.error.issues }); const existing = await prisma.employee.findUnique({ where: { id: req.params.employeeId }, select: { id: true, siteId: true } }); if (!existing) return res.status(404).json({ success: false, message: "Employee not found." }); const configuredSite = await siteFor(); if (!configuredSite || existing.siteId !== configuredSite.id) return res.status(403).json({ success: false, message: "Employee is not part of the configured construction site." }); const updated = await prisma.$transaction(async tx => { const employee = await tx.employee.update({ where: { id: existing.id }, data: { fullName: parsed.data.fullName, email: parsed.data.email === undefined ? undefined : parsed.data.email || null, phone: parsed.data.phone === undefined ? undefined : parsed.data.phone || null, isActive: parsed.data.isActive }, select: publicEmployeeSelect }); await tx.auditLog.create({ data: { actorId: req.admin!.sub, actorType: "ADMINISTRATOR", action: "EMPLOYEE_UPDATED", entityType: "Employee", entityId: employee.id, details: { employeeCode: employee.employeeCode } } }); return employee; }); return res.json({ success: true, employee: updated }); });
 router.patch("/:employeeId/status", async (req, res) => { const parsed = statusSchema.safeParse(req.body); if (!parsed.success) return res.status(400).json({ success: false, message: "isActive must be a boolean." }); const existing = await prisma.employee.findUnique({ where: { id: req.params.employeeId }, select: { id: true } }); if (!existing) return res.status(404).json({ success: false, message: "Employee not found." }); const employee = await prisma.$transaction(async tx => { const result = await tx.employee.update({ where: { id: existing.id }, data: { isActive: parsed.data.isActive }, select: publicEmployeeSelect }); await tx.auditLog.create({ data: { actorId: req.admin!.sub, actorType: "ADMINISTRATOR", action: parsed.data.isActive ? "EMPLOYEE_ACTIVATED" : "EMPLOYEE_DEACTIVATED", entityType: "Employee", entityId: result.id, details: { employeeCode: result.employeeCode } } }); return result; }); return res.json({ success: true, employee }); });
 
 // Kept for compatibility with existing internal tooling. New credentials should use the emailed regenerate action below.

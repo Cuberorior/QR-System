@@ -19,22 +19,13 @@ import VisitorRegistrationSecure from './pages/public/VisitorRegistrationSelfSer
 // Admin pages
 import AdminLogin from './pages/auth/AdminLoginReal';
 import Dashboard from './pages/admin/DashboardReal';
-import Employees from './pages/admin/EmployeesAutomatic';
-import Attendance from './pages/admin/AttendanceSafety';
-import Visitors from './pages/admin/VisitorsSelfService';
-import SitesSecure from './pages/admin/SitesManagementGps';
-import QRCodesSecure from './pages/admin/QRCodesTwoPerSite';
+import Employees from './pages/admin/EmployeesManagement';
+import Attendance from './pages/admin/AttendanceAdvanced';
+import Visitors from './pages/admin/VisitorsSingleSite';
+import SitesSecure from './pages/admin/SitesSingleSite';
+import QRCodesSecure from './pages/admin/QRCodesSingleSite';
 import ActivityLogs from './pages/admin/ActivityLogsRedesigned';
-import Settings from './pages/admin/BackendUnavailable';
-import DemoDashboard from './pages/admin/Dashboard';
-import DemoSites from './pages/admin/Sites';
-import DemoEmployees from './pages/admin/Employees';
-import DemoAttendance from './pages/admin/Attendance';
-import DemoVisitors from './pages/admin/Visitors';
-import DemoQRCodes from './pages/admin/QRCodes';
-import DemoActivityLogs from './pages/admin/ActivityLogs';
-import DemoSettings from './pages/admin/Settings';
-import { DEMO_MODE } from './services/demoMode';
+import Settings from './pages/admin/Settings';
 
 // Layout
 import AdminLayout from './components/layout/AdminLayout';
@@ -208,42 +199,42 @@ function AppRoutes() {
 
         <Route
           path="dashboard"
-          element={DEMO_MODE ? <DemoDashboard /> : <Dashboard />}
+          element={<Dashboard />}
         />
 
         <Route
           path="sites"
-          element={DEMO_MODE ? <DemoSites /> : <SitesSecure />}
+          element={<SitesSecure />}
         />
 
         <Route
           path="employees"
-          element={DEMO_MODE ? <DemoEmployees /> : <Employees />}
+          element={<Employees />}
         />
 
         <Route
           path="attendance"
-          element={DEMO_MODE ? <DemoAttendance /> : <Attendance />}
+          element={<Attendance />}
         />
 
         <Route
           path="visitors"
-          element={DEMO_MODE ? <DemoVisitors /> : <Visitors />}
+          element={<Visitors />}
         />
 
         <Route
           path="qr-codes"
-          element={DEMO_MODE ? <DemoQRCodes /> : <QRCodesSecure />}
+          element={<QRCodesSecure />}
         />
 
         <Route
           path="activity-logs"
-          element={DEMO_MODE ? <DemoActivityLogs /> : <ActivityLogs />}
+          element={<ActivityLogs />}
         />
 
         <Route
           path="settings"
-          element={DEMO_MODE ? <DemoSettings /> : <Settings />}
+          element={<Settings />}
         />
       </Route>
 

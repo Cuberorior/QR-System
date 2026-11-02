@@ -26,7 +26,7 @@ router.post("/verify", verificationRateLimit, async (req, res) => {
     const site = await prisma.constructionSite.findUnique({ where: { siteCode }, select: { id: true, siteCode: true, isActive: true, geofencingEnabled: true } });
     if (!site || !site.isActive) return res.status(404).json({ success: false, message: "Construction site not found or inactive." });
 
-    const employee = await prisma.employee.findFirst({ where: { employeeCode, siteId: site.id }, select: { id: true, employeeCode: true, fullName: true, accessCodeHash: true, isActive: true, siteId: true } });
+    const employee = await prisma.employee.findFirst({ where: { employeeCode, siteId: site.id, archivedAt: null }, select: { id: true, employeeCode: true, fullName: true, accessCodeHash: true, isActive: true, siteId: true } });
     const accessCodeMatches = employee ? await bcrypt.compare(accessCode, employee.accessCodeHash) : false;
     if (!employee || !employee.isActive || !accessCodeMatches) return res.status(401).json({ success: false, message: "Employee verification failed." });
 

@@ -5,6 +5,7 @@ import { requireAdmin } from "../middleware/admin-auth";
 import { authorizedSiteIds, canAccessSite } from "../utils/admin-access";
 
 const router = Router(); router.use(requireAdmin);
+router.use(async (req, res, next) => { if (req.method === "POST" && req.path === "/") return res.status(409).json({ success: false, message: "SITEPASS manages one configured construction site; additional sites cannot be created." }); if (req.method === "PATCH" && /\/status$/.test(req.path)) { const siteId = req.path.split("/").filter(Boolean).at(-2); if (!siteId || !(await canAccessSite(req.admin!.sub, req.admin!.role, siteId))) return res.status(403).json({ success: false, message: "You are not authorized to modify this site." }); } return next(); });
 const coordinates = z.object({ latitude: z.number().gte(-90).lte(90), longitude: z.number().gte(-180).lte(180) });
 const siteSchema = z.object({ siteCode: z.string().trim().min(1).max(100), name: z.string().trim().min(1).max(191), location: z.string().trim().max(191).optional(), latitude: z.number().gte(-90).lte(90), longitude: z.number().gte(-180).lte(180), geofenceRadius: z.number().int().min(10).max(10000).default(100), geofencingEnabled: z.boolean().default(true), isActive: z.boolean().default(true) });
 const updateSchema = siteSchema.partial().omit({ siteCode: true }).extend({ coordinates: coordinates.optional(), confirmDisableGps: z.boolean().optional() });

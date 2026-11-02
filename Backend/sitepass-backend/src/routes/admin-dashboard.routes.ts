@@ -3,10 +3,13 @@ import { z } from "zod";
 import { prisma } from "../config/prisma";
 import { requireAdmin } from "../middleware/admin-auth";
 import { authorizedSiteIds } from "../utils/admin-access";
+import { dashboardSummary } from "../services/dashboard-summary";
 
 const router = Router(); router.use(requireAdmin);
-router.get("/", async (req, res) => { const siteIds = await authorizedSiteIds(req.admin!.sub, req.admin!.role); const siteWhere = siteIds ? { id: { in: siteIds } } : {}; const attendanceWhere = siteIds ? { siteId: { in: siteIds } } : {}; const today = new Date(); today.setUTCHours(0, 0, 0, 0); const tomorrow = new Date(today); tomorrow.setUTCDate(tomorrow.getUTCDate() + 1); const [sites, employees, checkedInEmployees, entries, exits, pendingVisitors, checkedInVisitors, visitorEntries, visitorExits, recentAttendance] = await prisma.$transaction([prisma.constructionSite.count({ where: { ...siteWhere, isActive: true } }), prisma.employee.count({ where: { ...(siteIds ? { siteId: { in: siteIds } } : {}), isActive: true } }), prisma.attendanceRecord.count({ where: { ...attendanceWhere, status: "OPEN" } }), prisma.attendanceRecord.count({ where: { ...attendanceWhere, entryTime: { gte: today, lt: tomorrow } } }), prisma.attendanceRecord.count({ where: { ...attendanceWhere, exitTime: { gte: today, lt: tomorrow } } }), prisma.visitorVisit.count({ where: { ...(siteIds ? { siteId: { in: siteIds } } : {}), approvalStatus: "PENDING" } }), prisma.visitorVisit.count({ where: { ...(siteIds ? { siteId: { in: siteIds } } : {}), visitStatus: "CHECKED_IN" } }), prisma.visitorVisit.count({ where: { ...(siteIds ? { siteId: { in: siteIds } } : {}), entryTime: { gte: today, lt: tomorrow } } }), prisma.visitorVisit.count({ where: { ...(siteIds ? { siteId: { in: siteIds } } : {}), exitTime: { gte: today, lt: tomorrow } } }), prisma.attendanceRecord.findMany({ where: attendanceWhere, include: { employee: { select: { employeeCode: true, fullName: true } }, site: { select: { siteCode: true, name: true } } }, orderBy: { entryTime: "desc" }, take: 10 })]); return res.json({ success: true, stats: { activeSites: sites, activeEmployees: employees, checkedInEmployees, todayEntries: entries, todayExits: exits, pendingVisitorApprovals: pendingVisitors, checkedInVisitors, todayVisitorEntries: visitorEntries, todayVisitorExits: visitorExits }, recentAttendance: recentAttendance.map((item) => ({ id: item.id, employeeCode: item.employee.employeeCode, employeeName: item.employee.fullName, siteCode: item.site.siteCode, entryTime: item.entryTime.toISOString(), exitTime: item.exitTime?.toISOString() ?? null, status: item.status })) }); });
-
+router.get("/", async (req, res) => {
+  const siteIds = await authorizedSiteIds(req.admin!.sub, req.admin!.role);
+  return res.json(await dashboardSummary(siteIds ?? []));
+});
 const auditQuerySchema = z.object({
   q: z.string().trim().max(150).optional(),
   category: z.enum(["Attendance", "Safety", "Employee Management", "Visitor Management", "Site Management", "Administration"]).optional(),
@@ -23,12 +26,13 @@ const actionLabels: Record<string, string> = {
   SAFETY_DECLARATION_SUBMITTED: "Safety Checklist Submitted",
   SAFETY_DECLARATION_CONSUMED: "Safety Verification Completed",
   EMPLOYEE_CREATED: "Employee Created",
+  EMPLOYEE_ARCHIVED: "Employee Archived",
 };
 
 const categoryActions: Record<string, string[]> = {
   Attendance: ["ATTENDANCE_ENTRY", "ATTENDANCE_EXIT"],
   Safety: ["SAFETY_DECLARATION_SUBMITTED", "SAFETY_DECLARATION_CONSUMED"],
-  "Employee Management": ["EMPLOYEE_CREATED", "EMPLOYEE_UPDATED", "EMPLOYEE_ACTIVATED", "EMPLOYEE_DEACTIVATED", "EMPLOYEE_ACCESS_CODE_RESET", "EMPLOYEE_ACCESS_CODE_REGENERATED"],
+  "Employee Management": ["EMPLOYEE_CREATED", "EMPLOYEE_UPDATED", "EMPLOYEE_ACTIVATED", "EMPLOYEE_DEACTIVATED", "EMPLOYEE_ARCHIVED", "EMPLOYEE_ACCESS_CODE_RESET", "EMPLOYEE_ACCESS_CODE_REGENERATED"],
   "Visitor Management": ["VISITOR_REGISTERED", "VISITOR_EMAIL_VERIFIED", "VISITOR_CHECK_IN", "VISITOR_CHECK_OUT", "VISITOR_APPROVED", "VISITOR_REJECTED", "VISITOR_REVOKED", "VISITOR_CREDENTIALS_REGENERATED"],
   "Site Management": ["SITE_CREATED", "SITE_UPDATED", "SITE_ACTIVATED", "SITE_DEACTIVATED", "GPS_SETTINGS_CHANGED"],
   Administration: ["ADMINISTRATOR_CREATED", "ADMINISTRATOR_UPDATED", "ADMINISTRATOR_ACTIVATED", "ADMINISTRATOR_DEACTIVATED", "ADMINISTRATOR_PASSWORD_RESET"],

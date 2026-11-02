@@ -1,0 +1,51 @@
+.site-settings-page { max-width:1500px; padding:20px 22px 28px; color:#102d57; }
+.site-page-heading { margin:0 0 14px 8px; }
+.site-page-heading h1 { margin:0; font-size:29px; line-height:1.2; letter-spacing:-.9px; font-weight:800; }
+.site-page-heading p { margin:5px 0 0; color:#617492; font-size:14px; }
+.site-summary-card { position:relative; min-height:119px; border:1px solid #dce8f5; border-radius:13px; background:linear-gradient(104deg,#ffffff 0%,#f6faff 52%,#e9f3ff 100%); overflow:hidden; box-shadow:0 5px 16px #173b6b0a; }
+.site-summary-image { position:absolute; inset:0 0 0 auto; width:46%; height:100%; object-fit:cover; object-position:54% 54%; }
+.site-summary-decoration { position:absolute; z-index:1; top:-40px; right:37%; width:12px; height:210px; transform:skewX(-28deg); background:#f47d17; box-shadow:18px 0 0 #ffbd7c; }
+.site-summary-content { position:relative; z-index:2; display:flex; gap:17px; align-items:center; min-height:119px; padding:19px 30px; }
+.site-summary-icon,.site-card-icon { display:grid; place-items:center; flex-shrink:0; width:58px; height:58px; border-radius:13px; color:#f07813; background:#fff0dc; }
+.site-summary-content h2 { margin:0; font-size:25px; line-height:1.2; letter-spacing:-.6px; font-weight:800; }
+.site-summary-meta { display:flex; align-items:center; gap:11px; margin:7px 0 8px; color:#5b6f8a; font-size:14px; font-weight:600; }
+.site-summary-meta > i,.site-status-control > i { height:23px; border-left:1px solid #dce5f0; }
+.site-summary-content p { display:flex; align-items:center; gap:8px; margin:0; font-size:14px; font-weight:600; color:#26415f; }
+.site-summary-content p svg { color:#f47d17; }
+.site-status-pill { display:inline-flex; align-items:center; gap:6px; border-radius:999px; padding:5px 11px; background:#f2f3f5; color:#7f8998; font-size:12px; font-weight:800; }
+.site-status-pill b { width:7px; height:7px; border-radius:50%; background:currentColor; }
+.site-status-pill.active { background:#def7e6; color:#109b42; }
+.site-settings-form { display:grid; gap:12px; margin-top:14px; }
+.site-settings-card { border:1px solid #e1eaf4; border-radius:13px; padding:17px 20px; background:#fff; box-shadow:0 5px 16px #173b6b08; }
+.site-card-heading { display:flex; align-items:center; gap:12px; }
+.site-card-icon { width:42px; height:42px; border-radius:10px; }
+.site-card-icon.green { color:#0fa64d; background:#e7faed; }
+.site-card-heading h2 { margin:0; font-size:17px; line-height:1.2; font-weight:800; }
+.site-card-heading p { margin:3px 0 0; color:#7487a0; font-size:13px; }
+.site-details-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px 18px; margin-top:14px; }
+.site-field { display:grid; gap:6px; min-width:0; }
+.site-field > span { font-size:13px; font-weight:800; color:#172f55; }
+.site-field .field { min-width:0; height:39px; padding:8px 12px; border-color:#d4dfed; border-radius:8px; color:#203651; font-size:14px; box-shadow:inset 0 1px 2px #113a6605; }
+.site-field .field:disabled { color:#94a2b3; background:#f5f7fa; cursor:not-allowed; }
+.site-card-topline { display:flex; align-items:center; justify-content:space-between; gap:18px; }
+.gps-controls-grid { display:grid; grid-template-columns:minmax(0,1.1fr) minmax(260px,.72fr); gap:22px; align-items:end; margin-top:14px; }
+.gps-state { display:flex; align-items:center; min-height:40px; gap:14px; padding:9px 15px; border-radius:9px; font-size:14px; }
+.gps-state.enabled { background:linear-gradient(90deg,#e6faec,#effcf4); color:#0e9d45; }
+.gps-state.disabled { background:#fff6e9; color:#c47917; }
+.gps-state span { display:grid; place-items:center; }.gps-state p { margin:0; color:#36536c; }.gps-state strong { color:inherit; }
+.site-status-card { display:flex; align-items:center; justify-content:space-between; gap:20px; }
+.site-status-control { display:flex; align-items:center; gap:18px; }
+.site-toggle { position:relative; display:inline-flex; cursor:pointer; }
+.site-toggle input { position:absolute; opacity:0; pointer-events:none; }
+.site-toggle > span { position:relative; display:block; width:59px; height:31px; border-radius:999px; background:#b8c3d2; transition:background .18s; }
+.site-toggle > span i { position:absolute; left:4px; top:4px; width:23px; height:23px; border-radius:50%; background:#fff; box-shadow:0 2px 4px #0e27422e; transition:transform .18s; }
+.site-toggle input:checked + span { background:#14a847; }.site-toggle input:checked + span i { transform:translateX(28px); }
+.site-toggle input:focus-visible + span { outline:3px solid #f6ad78; outline-offset:3px; }
+.site-settings-actions { display:flex; justify-content:flex-end; gap:12px; padding:2px 16px 0; }
+.site-cancel-button,.site-save-button { min-height:42px; display:inline-flex; align-items:center; justify-content:center; gap:8px; border-radius:9px; padding:0 19px; font-size:13px; font-weight:800; }
+.site-cancel-button { border:1px solid #d7e1ed; color:#3e5067; background:#fff; }.site-cancel-button:hover { background:#f7faff; }
+.site-save-button { border:1px solid #e4710b; color:#fff; background:linear-gradient(135deg,#ff9a19,#ef6906); box-shadow:0 5px 12px #ed7b181f; }.site-save-button:hover { filter:brightness(.97); }
+.site-cancel-button:disabled,.site-save-button:disabled { cursor:wait; opacity:.65; }
+.site-settings-skeleton { min-height:200px; display:grid; place-items:center; border:1px solid #e1eaf4; border-radius:13px; background:#fff; color:#71839c; }
+@media(max-width:900px) { .site-summary-image { width:50%; opacity:.65; }.site-summary-decoration { right:43%; }.site-summary-content { padding:18px 21px; }.gps-controls-grid { grid-template-columns:1fr; gap:14px; }.site-status-card { align-items:flex-start; flex-direction:column; }.site-status-control { width:100%; justify-content:space-between; } }
+@media(max-width:620px) { .site-settings-page { padding:16px 12px 24px; }.site-page-heading { margin-left:2px; }.site-page-heading h1 { font-size:25px; }.site-page-heading p { font-size:13px; line-height:1.5; }.site-summary-card { min-height:152px; }.site-summary-image,.site-summary-decoration { display:none; }.site-summary-content { min-height:152px; padding:19px; align-items:flex-start; }.site-summary-icon { width:46px; height:46px; }.site-summary-content h2 { font-size:20px; }.site-summary-meta,.site-summary-content p { font-size:12px; flex-wrap:wrap; }.site-details-grid { grid-template-columns:1fr; }.site-settings-card { padding:16px; }.site-card-heading h2 { font-size:15px; }.site-card-heading p { font-size:12px; line-height:1.5; }.site-card-topline { align-items:flex-start; }.site-settings-actions { padding:2px 0 0; }.site-cancel-button,.site-save-button { flex:1; padding:0 12px; } }

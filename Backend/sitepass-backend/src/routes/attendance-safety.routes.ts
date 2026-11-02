@@ -7,7 +7,7 @@ import { prisma } from "../config/prisma";
 import { SAFETY_CHECKLIST_VERSION } from "./safety.routes";
 
 const router = Router();
-const requestSchema = z.object({ siteCode: z.string().trim().min(1).max(100), employeeCode: z.string().trim().min(1).max(100), accessCode: z.string().min(1).max(200), verificationToken: z.string().min(1).max(512).optional(), safetyToken: z.string().min(1).max(512).optional() }).strict();
+const requestSchema = z.object({ siteCode: z.string().trim().min(1).max(100), employeeCode: z.string().trim().min(1).max(100), accessCode: z.string().regex(/^\d{6}$/, "Access code must be exactly 6 digits."), verificationToken: z.string().min(1).max(512).optional(), safetyToken: z.string().min(1).max(512).optional() }).strict();
 const verificationRateLimit = rateLimit({ windowMs: 15 * 60 * 1000, limit: 20, standardHeaders: "draft-8", legacyHeaders: false, message: { success: false, message: "Too many attendance verification attempts. Please try again later." } });
 const hashToken = (token: string) => createHash("sha256").update(token).digest("hex");
 class VerificationFailure extends Error { status: number; constructor(message: string, status = 401) { super(message); this.status = status; } }
@@ -17,7 +17,7 @@ router.post("/verify", verificationRateLimit, async (req, res) => {
   const parsed = requestSchema.safeParse(req.body); if (!parsed.success) return res.status(400).json({ success: false, message: "Invalid attendance verification request." }); const { siteCode, employeeCode, accessCode, verificationToken, safetyToken } = parsed.data;
   try {
     const site = await prisma.constructionSite.findUnique({ where: { siteCode }, select: { id: true, siteCode: true, isActive: true, geofencingEnabled: true } }); if (!site || !site.isActive) return res.status(404).json({ success: false, message: "Construction site not found or inactive." });
-    const employee = await prisma.employee.findFirst({ where: { employeeCode, siteId: site.id }, select: { id: true, employeeCode: true, fullName: true, accessCodeHash: true, isActive: true } }); const matches = employee ? await bcrypt.compare(accessCode, employee.accessCodeHash) : false; if (!employee || !employee.isActive || !matches) return res.status(401).json({ success: false, message: "Employee verification failed." });
+    const employee = await prisma.employee.findFirst({ where: { employeeCode, siteId: site.id, archivedAt: null }, select: { id: true, employeeCode: true, fullName: true, accessCodeHash: true, isActive: true } }); const matches = employee ? await bcrypt.compare(accessCode, employee.accessCodeHash) : false; if (!employee || !employee.isActive || !matches) return res.status(401).json({ success: false, message: "Employee verification failed." });
     const result = await prisma.$transaction(async tx => {
       const authoritativeSite = await tx.constructionSite.findUnique({ where: { id: site.id }, select: { geofencingEnabled: true } }); if (!authoritativeSite) throw new VerificationFailure("Construction site not found.", 404);
       await tx.$queryRaw`SELECT id FROM Employee WHERE id = ${employee.id} FOR UPDATE`;

@@ -1,1 +1,1 @@
-export default function PageHeader({ title, description, action }) { return <div className="flex flex-wrap items-start justify-between gap-4 mb-7"><div><h1 className="font-display text-3xl font-bold text-[#102a56]">{title}</h1><p className="text-slate-500 mt-1">{description}</p></div>{action}</div>; }
+export default function PageHeader({ title, description, action }) { return <header className="page-header"><div><h1>{title}</h1><p>{description}</p></div>{action && <div className="page-header-action">{action}</div>}</header>; }

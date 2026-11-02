@@ -1,0 +1,38 @@
+.premium-shell { height:100dvh; min-height:100dvh; overflow:hidden; background:#f5f7fa; }
+.premium-shell .sidebar { position:sticky; top:0; height:100dvh; min-height:0; display:flex; flex-direction:column; width:224px; flex-basis:224px; padding:21px 12px 17px; background:linear-gradient(180deg,#052a56 0%,#05234a 72%,#031c3c 100%); overflow-y:auto; scrollbar-width:none; }
+.premium-shell .sidebar::-webkit-scrollbar,.premium-shell .admin-main::-webkit-scrollbar { display:none; }
+.premium-shell .admin-main { height:100dvh; min-height:0; overflow-x:hidden; overflow-y:auto; scrollbar-width:none; }
+.sidebar-brand { display:flex; align-items:center; justify-content:space-between; padding:0 8px; margin-bottom:31px; }
+.sidebar-caption { font-size:10px; font-weight:800; letter-spacing:.8px; color:#aac2dd; margin:0 12px 10px; }
+.premium-shell .nav-item { position:relative; padding:11px 12px; margin:3px 0; font-size:13px; font-weight:700; color:#d2e1f2; border-radius:7px; transition:background .18s,color .18s,transform .18s; }
+.premium-shell .nav-item:hover { background:#17446f; color:white; transform:translateX(2px); }
+.premium-shell .nav-item.active { background:linear-gradient(90deg,#ff8b14,#f36e10); color:white; box-shadow:0 7px 16px #f57c171f; }
+.premium-shell .nav-item.active::before { display:none; }
+.premium-shell .nav-item.active svg { color:white; }
+.sidebar-bottom { margin-top:auto; padding-top:24px; }
+.sidebar-site { display:flex; gap:9px; padding:13px 10px; border:1px solid #31577e; border-radius:9px; background:#0e3966b8; }
+.sidebar-site > div:last-child { min-width:0; }
+.sidebar-site-icon { flex-shrink:0; color:#ff9c32; padding-top:3px; }
+.sidebar-site .sidebar-caption { margin:0 0 7px; font-size:9px; letter-spacing:1px; }
+.sidebar-site strong { display:block; font-size:12px; line-height:1.45; overflow-wrap:anywhere; }
+.site-presence { display:flex; align-items:center; gap:6px; font-size:11px; margin-top:5px; color:#a7b5c6; }
+.site-presence i,.site-pill i { width:6px; height:6px; border-radius:50%; background:currentColor; }
+.site-presence.is-active { color:#7dd9b0; }
+.premium-shell .logout-button { width:100%; margin-top:15px; background:transparent; border:0; }
+.sidebar-footnote { font-size:10px; color:#809fbd; text-align:center; margin:14px 0 0; }
+.admin-topbar { height:61px; display:flex; align-items:center; justify-content:space-between; gap:16px; padding:0 22px; background:white; border-bottom:1px solid #e0eaf4; }
+.topbar-location { display:flex; align-items:center; gap:12px; font-size:14px; color:#8a96a6; }
+.topbar-location strong { color:#31425b; font-weight:500; }
+.admin-profile { display:flex; align-items:center; gap:12px; }
+.admin-profile strong,.admin-profile span { display:block; text-align:right; }
+.admin-profile strong { font-size:12px; }
+.admin-profile span { font-size:11px; color:#8793a3; margin-top:2px; }
+.profile-initials { width:37px; height:37px; border-radius:50%; background:#fff1df; color:#d7690b; display:grid; place-items:center; font-size:12px; font-weight:800; border:3px solid #fff8f2; }
+.icon-button { border:0; padding:8px; border-radius:7px; background:transparent; color:inherit; align-items:center; justify-content:center; }
+.sidebar-backdrop { position:fixed; inset:0; z-index:29; border:0; background:#0b172d99; }
+.skip-navigation { position:fixed; top:-100px; left:16px; z-index:100; padding:12px; background:white; border-radius:6px; }
+.skip-navigation:focus { top:12px; }
+.premium-shell :focus-visible { outline:3px solid #f29a5d; outline-offset:3px; }
+@media(max-width:900px) { .premium-shell .sidebar { position:fixed; z-index:30; width:248px; } .premium-shell .sidebar:not(.open) { visibility:hidden; } .admin-topbar { height:70px; padding:0 18px; } }
+@media(max-width:560px) { .topbar-workspace,.topbar-workspace + svg { display:none; } .admin-profile strong { max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; } .admin-topbar { gap:8px; padding:0 12px; } .topbar-location { gap:5px; } }
+@media(prefers-reduced-motion:reduce) { .premium-shell * { transition:none!important; animation:none!important; } }

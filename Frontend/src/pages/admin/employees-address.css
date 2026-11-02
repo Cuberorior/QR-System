@@ -1,0 +1,5 @@
+.employee-table-wrap table { min-width:1140px; }
+.address-cell { min-width:180px; max-width:260px; white-space:normal; }
+.employee-address-field { grid-column:1 / -1; }
+.employee-form textarea { width:100%; min-height:72px; padding:10px 11px; border:1px solid #d5e1ef; border-radius:8px; outline:0; color:#23456d; font:13px inherit; resize:vertical; }
+.employee-form textarea:focus { border-color:#fa8b22; box-shadow:0 0 0 3px #ffab5e2e; }

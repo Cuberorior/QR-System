@@ -1,0 +1,2 @@
+ALTER TABLE `Employee`
+  ADD COLUMN `address` VARCHAR(500) NULL;
