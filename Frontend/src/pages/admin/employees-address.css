@@ -1,5 +1,30 @@
-.employee-table-wrap table { min-width:1140px; }
-.address-cell { min-width:180px; max-width:260px; white-space:normal; }
+.employee-table-wrap table { min-width:1320px; table-layout:fixed; }
+.employee-col-person { width:18%; }
+.employee-col-site { width:13%; }
+.employee-col-email { width:17%; }
+.employee-col-phone { width:13%; }
+.employee-col-address { width:13%; }
+.employee-col-status { width:7%; }
+.employee-col-delivery { width:7%; }
+.employee-col-actions { width:12%; }
+.employee-table-wrap td { white-space:normal; overflow-wrap:anywhere; vertical-align:top; }
+.employee-table-wrap th, .employee-table-wrap td { padding:15px 12px; }
+.employee-table-wrap th { white-space:normal; }
+.employee-person { min-width:0; align-items:flex-start; }
+.employee-person > div { min-width:0; }
+.employee-person b { white-space:normal; overflow-wrap:anywhere; }
+.employee-table-wrap .employee-text-preview { display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; overflow:hidden; overflow-wrap:anywhere; }
+.employee-person small { white-space:nowrap; }
+.phone-cell { white-space:normal; overflow-wrap:anywhere; }
+.phone-cell svg { flex-shrink:0; }
+.employee-actions { min-width:0; gap:4px; }
+.employee-actions .employee-icon-button { width:30px; }
+.address-cell { white-space:pre-line; }
+.employee-form label { min-width:0; }
+.employee-form .employee-field-error { color:#b42318; }
+.employee-form [aria-invalid="true"] { border-color:#d92d20; }
+.employee-form select { width:100%; min-height:41px; padding:8px 11px; border:1px solid #d5e1ef; border-radius:8px; color:#23456d; background:white; }
+.employee-modal { overflow-wrap:anywhere; }
 .employee-address-field { grid-column:1 / -1; }
 .employee-form textarea { width:100%; min-height:72px; padding:10px 11px; border:1px solid #d5e1ef; border-radius:8px; outline:0; color:#23456d; font:13px inherit; resize:vertical; }
 .employee-form textarea:focus { border-color:#fa8b22; box-shadow:0 0 0 3px #ffab5e2e; }

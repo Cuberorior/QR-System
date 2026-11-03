@@ -1,21 +1,15 @@
 import { prisma } from "../config/prisma";
-import { getConfiguredSite } from "./single-site";
-
-export async function canAccessSite(adminId: string, role: string, siteId: string): Promise<boolean> {
-  const [administrator, site] = await Promise.all([
-    prisma.administrator.count({ where: { id: adminId, role: "ADMIN", isActive: true } }),
-    getConfiguredSite(),
-  ]);
-  return administrator === 1 && site?.id === siteId;
+/** Explicit site assignments restrict an administrator. Existing administrators
+ * with no assignments retain their historical all-site access. */
+export async function authorizedSiteIds(adminId: string, _role: string): Promise<string[] | undefined> {
+  const admin = await prisma.administrator.findUnique({ where: { id: adminId }, select: { isActive: true, siteAssignments: { select: { siteId: true } } } });
+  if (!admin?.isActive) return [];
+  return admin.siteAssignments.length ? admin.siteAssignments.map((assignment) => assignment.siteId) : undefined;
 }
 
-export async function authorizedSiteIds(adminId: string, role: string): Promise<string[] | undefined> {
-  const [administrator, site] = await Promise.all([
-    prisma.administrator.count({ where: { id: adminId, role: "ADMIN", isActive: true } }),
-    getConfiguredSite(),
-  ]);
-  if (administrator !== 1) return [];
-  return site ? [site.id] : [];
+export async function canAccessSite(adminId: string, role: string, siteId: string): Promise<boolean> {
+  const allowed = await authorizedSiteIds(adminId, role);
+  return allowed === undefined || allowed.includes(siteId);
 }
 
 export async function getAdmin(adminId: string) {

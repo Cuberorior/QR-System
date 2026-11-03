@@ -21,7 +21,7 @@ router.post("/login", loginRateLimit, async (req, res) => {
     const passwordMatches = admin ? await bcrypt.compare(parsed.data.password, admin.passwordHash) : false;
     if (!admin || !admin.isActive || !passwordMatches) return res.status(401).json({ success: false, message: "Invalid administrator credentials." });
 
-    const token = jwt.sign({ role: "ADMIN" }, getJwtSecret(), { subject: admin.id, expiresIn: "15m" });
+    const token = jwt.sign({ role: "ADMIN" }, getJwtSecret(), { subject: admin.id, expiresIn: "8h" });
     return res.json({ success: true, token, administrator: { id: admin.id, fullName: admin.fullName, email: admin.email, role: "ADMIN" } });
   } catch (error) {
     console.error("Administrator login failed:", error instanceof Error ? error.message : "Unknown error");

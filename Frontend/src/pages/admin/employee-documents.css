@@ -1,0 +1,25 @@
+.employee-documents-modal { width:min(100%,680px); }
+.employee-document-form { display:grid; grid-template-columns:1fr 1fr; gap:13px; margin-top:20px; padding:15px; border:1px solid #e1e9f2; border-radius:10px; background:#f9fbfd; }
+.employee-document-form label { display:block; }
+.employee-document-form label > span { display:block; margin-bottom:6px; color:#4d6381; font-size:12px; font-weight:800; }
+.employee-document-form label > span b { color:#c35e1c; font-weight:700; }
+.employee-document-form input { width:100%; min-height:40px; padding:0 10px; border:1px solid #d5e1ef; border-radius:8px; color:#23456d; background:#fff; font-size:13px; }
+.employee-document-form input:focus { outline:0; border-color:#fa8b22; box-shadow:0 0 0 3px #ffab5e2e; }
+.employee-document-form small { display:block; margin-top:5px; color:#8295ad; font-size:11px; }
+.employee-document-types,.employee-document-file,.employee-document-form .employee-form-error,.employee-document-form .employee-modal-footer { grid-column:1/-1; }
+.employee-document-types { display:flex; flex-wrap:wrap; gap:7px; }
+.employee-document-types button { min-height:32px; padding:0 10px; border:1px solid #d7e3f0; border-radius:7px; color:#607894; background:#fff; font-size:12px; font-weight:700; cursor:pointer; }
+.employee-document-types button.selected { color:#fff; border-color:#2878cf; background:#2878cf; }
+.employee-document-file input { padding:7px 10px; }
+.employee-document-list { margin-top:19px; }
+.employee-document-list h3 { margin:0 0 9px; color:#294b73; font-size:13px; }
+.employee-document-empty { margin:0; padding:15px; border-radius:8px; color:#8396af; background:#f8fbfe; font-size:12px; text-align:center; }
+.employee-document-row { display:flex; align-items:center; gap:10px; padding:10px 0; border-top:1px solid #edf2f8; }
+.employee-document-row > svg { flex:none; color:#3c7cca; }
+.employee-document-row > div:nth-child(2) { min-width:0; flex:1; }
+.employee-document-row strong,.employee-document-row small { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.employee-document-row strong { color:#26486e; font-size:12px; }
+.employee-document-row small { margin-top:3px; color:#8496ad; font-size:11px; }
+.employee-document-actions { display:flex; gap:6px; }
+.employee-icon-button:disabled,.employee-document-types button:disabled { cursor:not-allowed; opacity:.55; transform:none; }
+@media(max-width:620px) { .employee-document-form { grid-template-columns:1fr; } .employee-document-row { align-items:flex-start; } }

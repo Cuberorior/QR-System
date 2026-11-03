@@ -22,7 +22,7 @@ app.use(cors({
   origin: ["http://localhost:5173", "http://127.0.0.1:5173", process.env.FRONTEND_URL].filter((value): value is string => Boolean(value)),
 }));
 
-app.use(express.json());
+app.use(express.json({ limit: "7mb" }));
 
 app.get("/api/health", (_req, res) => {
   res.json({

@@ -28,18 +28,18 @@ async function main() {
     const login = await request("/admin/auth/login", { method: "POST", body: JSON.stringify({ email: adminEmail, password }) });
     const loginData = await body(login); assert(login.ok && loginData.token, "Temporary admin login failed."); accessToken = loginData.token;
 
-    const created = await request("/admin/employees", { method: "POST", headers: { "idempotency-key": `employee-test-${suffix}` }, body: JSON.stringify({ fullName: "Phone Test Employee", email: employeeEmail, phone: "077 123 4567", address: "12 Temple Road, Colombo" }) });
-    const createdData = await body(created); assert(created.status === 201, `Employee creation failed: ${createdData.message || created.status}`); assert(createdData.employee.phone === "+94771234567", "Phone number was not normalized to the Sri Lankan international format."); assert(createdData.employee.address === "12 Temple Road, Colombo", "Address was not saved on employee creation."); employeeId = createdData.employee.id;
+    const created = await request("/admin/employees", { method: "POST", headers: { "idempotency-key": `employee-test-${suffix}` }, body: JSON.stringify({ fullName: "Phone Test Employee", email: employeeEmail, phone: "07700 900123", address: "12 Temple Road, Colombo" }) });
+    const createdData = await body(created); assert(created.status === 201, `Employee creation failed: ${createdData.message || created.status}`); assert(createdData.employee.phone === "+447700900123", "Phone number was not normalized to the UK international format."); assert(createdData.employee.address === "12 Temple Road, Colombo", "Address was not saved on employee creation."); employeeId = createdData.employee.id;
 
-    const listed = await request("/admin/employees"); const listedData = await body(listed); assert(listed.ok && listedData.employees.some((employee: any) => employee.id === employeeId && employee.phone === "+94771234567"), "Phone number is absent from the employee directory.");
+    const listed = await request("/admin/employees"); const listedData = await body(listed); assert(listed.ok && listedData.employees.some((employee: any) => employee.id === employeeId && employee.phone === "+447700900123"), "Phone number is absent from the employee directory.");
 
-    const edited = await request(`/admin/employees/${employeeId}`, { method: "PATCH", body: JSON.stringify({ fullName: "Updated Phone Test Employee", email: employeeEmail, phone: "+94 71 234 5678", address: "22 Test Lane, Kandy", isActive: false }) });
-    const editedData = await body(edited); assert(edited.ok && editedData.employee.fullName === "Updated Phone Test Employee" && editedData.employee.phone === "+94712345678" && editedData.employee.address === "22 Test Lane, Kandy" && editedData.employee.isActive === false, "Employee edit did not persist the expected values.");
+    const edited = await request(`/admin/employees/${employeeId}`, { method: "PATCH", body: JSON.stringify({ fullName: "Updated Phone Test Employee", email: employeeEmail, phone: "+44 7700 900124", address: "22 Test Lane, Kandy", isActive: false }) });
+    const editedData = await body(edited); assert(edited.ok && editedData.employee.fullName === "Updated Phone Test Employee" && editedData.employee.phone === "+447700900124" && editedData.employee.address === "22 Test Lane, Kandy" && editedData.employee.isActive === false, "Employee edit did not persist the expected values.");
 
-    const duplicate = await request("/admin/employees", { method: "POST", headers: { "idempotency-key": `employee-duplicate-${suffix}` }, body: JSON.stringify({ fullName: "Duplicate Email", email: employeeEmail, phone: "0770000000" }) });
+    const duplicate = await request("/admin/employees", { method: "POST", headers: { "idempotency-key": `employee-duplicate-${suffix}` }, body: JSON.stringify({ fullName: "Duplicate Email", email: employeeEmail, phone: "07700900125" }) });
     assert(duplicate.status === 409, "Duplicate employee email was accepted.");
 
-    const openCreated = await request("/admin/employees", { method: "POST", headers: { "idempotency-key": `employee-open-${suffix}` }, body: JSON.stringify({ fullName: "Open Session Employee", email: `open-${employeeEmail}`, phone: "0770000001" }) });
+    const openCreated = await request("/admin/employees", { method: "POST", headers: { "idempotency-key": `employee-open-${suffix}` }, body: JSON.stringify({ fullName: "Open Session Employee", email: `open-${employeeEmail}`, phone: "07700900126" }) });
     const openCreatedData = await body(openCreated); assert(openCreated.status === 201, `Open-session fixture creation failed: ${openCreatedData.message || openCreated.status}`); openEmployeeId = openCreatedData.employee.id;
     await prisma.employee.update({ where: { id: openEmployeeId }, data: { accessCodeHash: await bcrypt.hash("ArchiveCheck123!", 12) } });
     const attendance = await prisma.attendanceRecord.create({ data: { employeeId: openEmployeeId, siteId: configuredSite.id, status: "OPEN" } });

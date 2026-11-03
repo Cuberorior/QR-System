@@ -94,9 +94,29 @@ model Employee {
   emailDeliveries   EmailDelivery[]
   creationRequest   EmployeeCreationRequest?
   safetyDeclarations SafetyDeclaration[]
+  documents         EmployeeDocument[]
 
   @@index([siteId])
   @@index([siteId, archivedAt])
+}
+
+model EmployeeDocument {
+  id           String   @id @default(cuid())
+  employeeId   String
+  documentType String
+  documentName String
+  fileName     String
+  mimeType     String
+  fileSize     Int
+  fileData     Bytes    @db.LongBlob
+  expiresAt    DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  employee Employee @relation(fields: [employeeId], references: [id])
+
+  @@index([employeeId, documentType])
+  @@index([expiresAt])
 }
 
 model EmployeeIdSequence {
