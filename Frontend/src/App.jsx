@@ -6,12 +6,12 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 
 // Public verification pages
 import VerificationGate from './pages/public/VerificationGateGps';
-import VerificationSuccess from './pages/public/VerificationSuccessReal';
+import VerificationSuccess from './pages/public/VerificationSuccessWithContact';
 import VisitorStatus from './pages/public/VisitorAccess';
 import EmployeeVerificationSecure from './pages/public/EmployeeSafetyVerification';
 import VerificationAction from './pages/public/VerificationAction';
 import EmployeeActionVerification from './pages/public/EmployeeActionVerification';
-import EmployeeActionWorkflow from './pages/public/EmployeeActionWorkflow';
+import EmployeeActionWorkflow from './pages/public/EmployeeActionWorkflowNumeric';
 import VisitorAction from './pages/public/VisitorAction';
 import LegacyEmployeeNotice from './pages/public/LegacyEmployeeNotice';
 import VisitorRegistrationSecure from './pages/public/VisitorRegistrationSelfService';
@@ -20,10 +20,10 @@ import VisitorRegistrationSecure from './pages/public/VisitorRegistrationSelfSer
 import AdminLogin from './pages/auth/AdminLoginReal';
 import Dashboard from './pages/admin/DashboardReal';
 import Employees from './pages/admin/EmployeesManagement';
-import Attendance from './pages/admin/AttendanceAdvanced';
-import Visitors from './pages/admin/VisitorsSingleSite';
-import SitesSecure from './pages/admin/SitesSingleSite';
-import QRCodesSecure from './pages/admin/QRCodesSingleSite';
+import Attendance from './pages/admin/Attendance';
+import Visitors from './pages/admin/Visitors';
+import SitesSecure from './pages/admin/Sites';
+import QRCodesSecure from './pages/admin/QRCodes';
 import ActivityLogs from './pages/admin/ActivityLogsRedesigned';
 import Settings from './pages/admin/Settings';
 

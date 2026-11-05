@@ -6,11 +6,12 @@
 .employee-document-form input { width:100%; min-height:40px; padding:0 10px; border:1px solid #d5e1ef; border-radius:8px; color:#23456d; background:#fff; font-size:13px; }
 .employee-document-form input:focus { outline:0; border-color:#fa8b22; box-shadow:0 0 0 3px #ffab5e2e; }
 .employee-document-form small { display:block; margin-top:5px; color:#8295ad; font-size:11px; }
-.employee-document-types,.employee-document-file,.employee-document-form .employee-form-error,.employee-document-form .employee-modal-footer { grid-column:1/-1; }
+.employee-document-types,.employee-document-file,.employee-document-note,.employee-document-form .employee-form-error,.employee-document-form .employee-modal-footer { grid-column:1/-1; }
 .employee-document-types { display:flex; flex-wrap:wrap; gap:7px; }
 .employee-document-types button { min-height:32px; padding:0 10px; border:1px solid #d7e3f0; border-radius:7px; color:#607894; background:#fff; font-size:12px; font-weight:700; cursor:pointer; }
 .employee-document-types button.selected { color:#fff; border-color:#2878cf; background:#2878cf; }
 .employee-document-file input { padding:7px 10px; }
+.employee-document-note { margin:0; padding:10px 12px; border:1px solid #cde1f7; border-radius:8px; color:#4d6d91; background:#edf6ff; font-size:12px; line-height:1.45; }
 .employee-document-list { margin-top:19px; }
 .employee-document-list h3 { margin:0 0 9px; color:#294b73; font-size:13px; }
 .employee-document-empty { margin:0; padding:15px; border-radius:8px; color:#8396af; background:#f8fbfe; font-size:12px; text-align:center; }

@@ -8,7 +8,7 @@ const router = Router(); router.use(requireAdmin);
 const password = z.string().min(8).max(200); const role = z.literal("ADMIN");
 const createSchema = z.object({ fullName: z.string().trim().min(1).max(191), email: z.string().trim().email().max(191), password, role: role.default("ADMIN"), siteIds: z.array(z.string().min(1)).default([]) });
 const updateSchema = z.object({ fullName: z.string().trim().min(1).max(191).optional(), email: z.string().trim().email().max(191).optional(), role: role.optional(), siteIds: z.array(z.string().min(1)).optional() });
-const publicSelect = { id: true, fullName: true, email: true, role: true, isActive: true, createdAt: true, updatedAt: true } as const;
+const publicSelect = { id: true, fullName: true, email: true, phone: true, role: true, isActive: true, createdAt: true, updatedAt: true } as const;
 function requireSuper(_req: any, _res: any) { return true; }
 async function preventLastSuper(id: string, _nextRole?: string, _nextActive?: boolean) { const current = await prisma.administrator.findUnique({ where: { id }, select: { id: true } }); return current ? null : "Administrator not found."; }
 async function saveAssignments(tx: any, adminId: string, siteIds: string[]) { const sites = await tx.constructionSite.findMany({ where: { id: { in: siteIds } }, select: { id: true } }); if (sites.length !== siteIds.length) throw new Error("One or more construction sites do not exist."); await tx.adminSiteAssignment.deleteMany({ where: { adminId } }); if (siteIds.length) await tx.adminSiteAssignment.createMany({ data: siteIds.map((siteId) => ({ adminId, siteId })), skipDuplicates: true }); }

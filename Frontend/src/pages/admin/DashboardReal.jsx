@@ -1,8 +1,10 @@
+import { useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { Area, AreaChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { ArrowUpRight, ArrowRight, Building2, CalendarDays, Clock3, LogIn, LogOut, RefreshCw, Users, UserRoundCheck, AlertCircle, Activity } from 'lucide-react';
 import { apiErrorMessage, verificationApi } from '../../services/api';
+import { savedSiteCode } from '../../components/common/SiteSelector';
 import { useAuth } from '../../context/AuthContext';
 import constructionHero from '../../assets/sitepass-construction-hero.png';
 import './dashboard.css';
@@ -37,20 +39,24 @@ function DashboardSkeleton() {
 export default function DashboardReal() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const { data, error, isPending, isFetching, refetch } = useQuery({ queryKey: ['admin-dashboard', user?.id], queryFn: async () => (await verificationApi.getDashboard()).data, retry: 1 });
+  const [siteCode, setSiteCode] = useState(savedSiteCode);
+  useEffect(() => { if (siteCode) sessionStorage.setItem('sitepass:admin-selected-site', siteCode); else sessionStorage.removeItem('sitepass:admin-selected-site'); }, [siteCode]);
+  const { data, error, isPending, isFetching, refetch } = useQuery({ queryKey: ['admin-dashboard', user?.id, siteCode], queryFn: async () => (await verificationApi.getDashboard(siteCode)).data, retry: 1, refetchInterval: 60_000 });
   const refresh = () => { refetch(); queryClient.invalidateQueries({ queryKey: ['admin-shell-site'] }); };
   const timezone = data?.timezone || 'UTC';
   const stats = data?.stats;
   const metrics = stats ? [
+    { label: 'Construction Sites', value: stats.totalSites, detail: `${stats.activeSites} active`, icon: Building2, color: 'navy', to: '/admin/sites' },
+    { label: 'Total Employees', value: stats.totalEmployees, detail: `${stats.activeEmployees} active`, icon: Users, color: 'purple', to: '/admin/employees' },
     { label: 'Employees on Site', value: stats.checkedInEmployees, detail: 'Currently checked in', icon: Users, color: 'navy', to: '/admin/attendance' },
     { label: "Today's Entries", value: stats.todayEntries, detail: 'Verified employee entries', icon: LogIn, color: 'green', to: '/admin/attendance' },
-    { label: "Today's Exits", value: stats.todayExits, detail: 'Verified employee exits', icon: LogOut, color: 'orange', to: '/admin/attendance' },
+    { label: "Today's Exits", value: stats.todayExits, detail: 'Recorded employee exits', icon: LogOut, color: 'orange', to: '/admin/attendance' },
     { label: 'Active Visitors', value: stats.checkedInVisitors, detail: 'Currently checked in', icon: UserRoundCheck, color: 'purple', to: '/admin/visitors' },
   ] : [];
   return <main className="content sitepass-dashboard">
     {error && <div className="dashboard-error" role="alert"><AlertCircle size={20}/><div><strong>Unable to refresh dashboard</strong><p>{apiErrorMessage(error, 'Please try again.')}{data ? ' Showing the last successfully loaded snapshot.' : ' No statistics are available. Use Refresh to retry.'}</p></div></div>}
     {isPending ? <DashboardSkeleton/> : data && <>
-      <section className="dashboard-welcome"><img className="construction-hero" src={constructionHero} alt="" decoding="async"/><div className="welcome-copy"><div className="welcome-actions"><span className="welcome-eyebrow"><span/> SITE ACCESS & ATTENDANCE</span><button className="dashboard-refresh" aria-label="Refresh dashboard" disabled={isFetching} onClick={refresh}><RefreshCw size={15} className={isFetching ? 'refresh-spinning' : ''}/><span>{isFetching ? 'Refreshing…' : 'Refresh'}</span></button></div><h2>Welcome back! <span aria-hidden="true">👋</span></h2><p>Monitor site access, attendance, and visitor activity in real time.</p><div className="welcome-meta"><span className="welcome-site"><Building2 size={15}/>{data.site?.name || 'No site configured'}</span>{data.site && <span className={`site-pill ${data.site.isActive ? 'active' : ''}`}><i/>{data.site.isActive ? 'Active' : 'Inactive'}</span>}<span className="welcome-date"><CalendarDays size={14}/>{new Date().toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', timeZone: timezone })}</span></div></div></section>
+      <section className="dashboard-welcome"><img className="construction-hero" src={constructionHero} alt="" decoding="async"/><div className="welcome-copy"><div className="welcome-actions"><span className="welcome-eyebrow"><span/> SITE ACCESS & ATTENDANCE</span><button className="dashboard-refresh" aria-label="Refresh dashboard" disabled={isFetching} onClick={refresh}><RefreshCw size={15} className={isFetching ? 'refresh-spinning' : ''}/><span>{isFetching ? 'Refreshing…' : 'Refresh'}</span></button></div><h2>Welcome back! <span aria-hidden="true">👋</span></h2><p>Monitor site access, attendance, and visitor activity in real time.</p><div className="welcome-meta"><label className="welcome-site"><Building2 size={15}/><select value={siteCode} onChange={event => setSiteCode(event.target.value)} aria-label="Dashboard site filter"><option value="">All Sites</option>{(data.sites || []).map(site => <option key={site.id} value={site.siteCode}>{site.name}</option>)}</select></label>{data.site && <span className={`site-pill ${data.site.isActive ? 'active' : ''}`}><i/>{data.site.isActive ? 'Active' : 'Inactive'}</span>}<span className="welcome-date"><CalendarDays size={14}/>{new Date().toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', timeZone: timezone })}</span></div></div></section>
       <div className="dashboard-kpis">{metrics.map(({ label, value, detail, icon: Icon, color, to }) => <Link key={label} to={to} className={`dashboard-kpi kpi-${color}`}><div className="kpi-top"><span className="kpi-icon"><Icon size={20}/></span><ArrowUpRight size={17} className="kpi-arrow"/></div><h2>{label}</h2><strong className="kpi-value">{value.toLocaleString()}</strong><p><span/>{detail}</p></Link>)}</div>
       <div className="dashboard-section-label"><h2>Access insights</h2><span><Clock3 size={13}/> All times in {timezone}</span></div>
       <div className="dashboard-charts"><section className="dashboard-card overview-card"><div className="chart-heading overview-heading"><div><h2>Site Access Overview</h2><p>Employee movements over the last seven days</p></div><span className="period-label">Last 7 days</span></div><div className="series-legend"><span><i style={{ background: COLORS.blue }}/>Entries</span><span><i style={{ background: COLORS.orange }}/>Exits</span></div>

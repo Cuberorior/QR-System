@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { createEmployeeSchema, updateEmployeeSchema, normalizeUKPhone } from '../src/utils/employee-validation';
+import { createEmployeeSchema, updateEmployeeSchema, normalizeInternationalPhone } from '../src/utils/employee-validation';
 import { createEmployeeSchema as frontendCreate, updateEmployeeSchema as frontendUpdate, validateEmployeeForm } from '../../../Frontend/src/services/employeeValidation.js';
 
 const base = { fullName: 'Anne-Marie O’Neill', email: 'worker@example.com', phone: '07700 900123', address: '12 Main Road\nLondon', siteCode: 'TEST' };
@@ -22,7 +22,8 @@ const cases = [
   { label: 'missing email', input: { ...base, email: '' }, valid: false },
   { label: 'invalid email', input: { ...base, email: 'worker@' }, valid: false },
   { label: 'invalid phone', input: { ...base, phone: '123' }, valid: false },
-  { label: 'foreign phone', input: { ...base, phone: '+94771234567' }, valid: false },
+  { label: 'foreign phone', input: { ...base, phone: '+94771234567' }, valid: true },
+  { label: 'formatted foreign phone', input: { ...base, phone: '+94 757 949 092' }, valid: true },
   { label: 'UK international mobile', input: { ...base, phone: '+44 7700 900123' }, valid: true },
   { label: 'UK landline', input: { ...base, phone: '020 7946 0123' }, valid: true },
   { label: 'UK 01 landline', input: { ...base, phone: '01632 960123' }, valid: true },
@@ -45,9 +46,10 @@ for (const { label, input, valid } of cases) {
     assert.equal(frontendUpdate.safeParse(update).success, valid, `Frontend edit: ${label}`);
   }
 }
-for (const value of ['07700 900123', '+44 (7700) 900-123', '0044 7700 900123', '+44 (0)7700 900123', '0044 (0)7700 900123']) assert.equal(normalizeUKPhone(value), '+447700900123');
-assert.equal(normalizeUKPhone('020 7946 0123'), '+442079460123');
-assert.equal(normalizeUKPhone(''), null);
+for (const value of ['07700 900123', '+44 (7700) 900-123', '0044 7700 900123', '+44 (0)7700 900123', '0044 (0)7700 900123']) assert.equal(normalizeInternationalPhone(value), '+447700900123');
+assert.equal(normalizeInternationalPhone('020 7946 0123'), '+442079460123');
+assert.equal(normalizeInternationalPhone('+94 757 949 092'), '+94757949092');
+assert.equal(normalizeInternationalPhone(''), null);
 const normalized = createEmployeeSchema.parse({ ...base, fullName: '  Anne   Marie  ', email: '  WORKER@EXAMPLE.COM  ' });
 assert.equal(normalized.fullName, 'Anne Marie');
 assert.equal(normalized.email, 'worker@example.com');

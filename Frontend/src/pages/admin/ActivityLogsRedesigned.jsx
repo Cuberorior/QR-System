@@ -4,6 +4,8 @@ import {
   RefreshCw, Search, SlidersHorizontal, X,
 } from 'lucide-react';
 import PageHeader from '../../components/common/PageHeader';
+import ClearHistoryDialog from '../../components/common/ClearHistoryDialog';
+import SiteSelector, { savedSiteCode } from '../../components/common/SiteSelector';
 import { apiErrorMessage, verificationApi } from '../../services/api';
 import { toast } from 'sonner';
 
@@ -61,7 +63,8 @@ function DetailsDrawer({ log, onClose }) {
 }
 
 export default function ActivityLogsRedesigned() {
-  const [filters, setFilters] = useState({ q: '', category: '', from: '', to: '' });
+  const [filters, setFilters] = useState({ siteCode: savedSiteCode(), q: '', category: '', from: '', to: '' });
+  const [sites, setSites] = useState([]);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
   const [logs, setLogs] = useState([]);
@@ -70,9 +73,13 @@ export default function ActivityLogsRedesigned() {
   const [error, setError] = useState('');
   const [selectedLog, setSelectedLog] = useState(null);
   const [exporting, setExporting] = useState(false);
+  const [clearDialogOpen, setClearDialogOpen] = useState(false);
+  const [clearing, setClearing] = useState(false);
+  useEffect(() => { const open = () => setClearDialogOpen(true); window.addEventListener('sitepass:clear-activity-history', open); return () => window.removeEventListener('sitepass:clear-activity-history', open); }, []);
   const query = useMemo(() => ({
     page, pageSize,
     ...(filters.q ? { q: filters.q } : {}),
+    ...(filters.siteCode ? { siteCode: filters.siteCode } : {}),
     ...(filters.category ? { category: filters.category } : {}),
     ...(filters.from ? { from: toIsoStart(filters.from) } : {}),
     ...(filters.to ? { to: toIsoEnd(filters.to) } : {}),
@@ -89,6 +96,7 @@ export default function ActivityLogsRedesigned() {
     } finally { setLoading(false); }
   };
   useEffect(() => { const timer = window.setTimeout(load, 250); return () => window.clearTimeout(timer); }, [JSON.stringify(query)]);
+  useEffect(() => { verificationApi.listSites().then(({ data }) => setSites(data.sites || [])).catch(requestError => toast.error(apiErrorMessage(requestError, 'Unable to load construction sites.'))); }, []);
   useEffect(() => {
     if (!selectedLog) return undefined;
     const close = event => event.key === 'Escape' && setSelectedLog(null);
@@ -97,12 +105,13 @@ export default function ActivityLogsRedesigned() {
   }, [selectedLog]);
 
   const changeFilter = (key, value) => { setPage(1); setFilters(current => ({ ...current, [key]: value })); };
-  const clearFilters = () => { setPage(1); setFilters({ q: '', category: '', from: '', to: '' }); };
+  const clearFilters = () => { setPage(1); setFilters({ siteCode: '', q: '', category: '', from: '', to: '' }); };
   const exportCsv = async () => {
     setExporting(true);
     try {
       const { data } = await verificationApi.exportAuditLogs({
         ...(filters.q ? { q: filters.q } : {}),
+        ...(filters.siteCode ? { siteCode: filters.siteCode } : {}),
         ...(filters.category ? { category: filters.category } : {}),
         ...(filters.from ? { from: toIsoStart(filters.from) } : {}),
         ...(filters.to ? { to: toIsoEnd(filters.to) } : {}),
@@ -114,12 +123,32 @@ export default function ActivityLogsRedesigned() {
     finally { setExporting(false); }
   };
 
+  const clearHistory = async () => {
+    setClearing(true);
+    try {
+      const { data } = await verificationApi.clearAuditLogs({
+        ...(filters.q ? { q: filters.q } : {}),
+        ...(filters.siteCode ? { siteCode: filters.siteCode } : {}),
+        ...(filters.category ? { category: filters.category } : {}),
+        ...(filters.from ? { from: toIsoStart(filters.from) } : {}),
+        ...(filters.to ? { to: toIsoEnd(filters.to) } : {}),
+        confirmation: 'CLEAR',
+      });
+      toast.success(data.message || 'Activity log history cleared.');
+      setClearDialogOpen(false);
+      setPage(1);
+      load();
+    } catch (requestError) { toast.error(apiErrorMessage(requestError, 'Unable to clear activity logs.')); }
+    finally { setClearing(false); }
+  };
+
   return <main className="content">
     <PageHeader title="Activity logs" description="Review a read-only audit trail of activity across your SITEPASS workspace." action={<button className="btn btn-primary" onClick={exportCsv} disabled={exporting}><Download size={16}/>{exporting ? 'Preparing…' : 'Export CSV'}</button>}/>
     <div className="mb-5 flex flex-wrap items-center justify-between gap-3"><div className="flex items-center gap-2 text-sm text-slate-500"><ClipboardList size={17} className="text-teal-600"/><span>{pagination.total.toLocaleString()} recorded events</span><span className="hidden text-slate-300 sm:inline">·</span><span className="hidden sm:inline">Times shown in {timezone}</span></div><button className="btn btn-soft text-sm" onClick={load} disabled={loading}><RefreshCw size={15} className={loading ? 'animate-spin' : ''}/>Refresh</button></div>
     <section className="card overflow-hidden">
       <div className="border-b border-slate-100 bg-slate-50/70 p-4"><div className="flex flex-wrap items-end gap-3">
         <label className="relative min-w-[220px] flex-1"><span className="sr-only">Search activity logs</span><Search size={16} className="absolute left-3 top-3 text-slate-400"/><input className="field pl-9" placeholder="Search activity, actor, or record" value={filters.q} onChange={event => changeFilter('q', event.target.value)}/></label>
+        <label className="min-w-[220px]"><span className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-500">Construction site</span><SiteSelector sites={sites} value={filters.siteCode} onChange={value => changeFilter('siteCode', value)} /></label>
         <label className="min-w-[190px]"><span className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-500">Category</span><select className="field" value={filters.category} onChange={event => changeFilter('category', event.target.value)}><option value="">All categories</option>{categories.map(category => <option key={category}>{category}</option>)}</select></label>
         <label><span className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-500">From</span><input className="field" type="date" value={filters.from} onChange={event => changeFilter('from', event.target.value)}/></label>
         <label><span className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-500">To</span><input className="field" type="date" value={filters.to} onChange={event => changeFilter('to', event.target.value)}/></label>
@@ -134,5 +163,6 @@ export default function ActivityLogsRedesigned() {
       {!loading && !error && logs.length > 0 && <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 px-4 py-4"><p className="text-sm text-slate-500">Showing {((pagination.page - 1) * pagination.pageSize) + 1}–{Math.min(pagination.page * pagination.pageSize, pagination.total)} of {pagination.total.toLocaleString()}</p><div className="flex items-center gap-2"><select className="field w-auto py-2 text-sm" value={pageSize} onChange={event => { setPageSize(Number(event.target.value)); setPage(1); }}><option value="25">25 / page</option><option value="50">50 / page</option><option value="100">100 / page</option></select><button className="btn btn-soft p-2" disabled={page <= 1} onClick={() => setPage(current => current - 1)} aria-label="Previous page"><ChevronLeft size={17}/></button><span className="min-w-16 text-center text-sm font-semibold text-slate-600">{pagination.page} / {Math.max(pagination.totalPages, 1)}</span><button className="btn btn-soft p-2" disabled={page >= pagination.totalPages} onClick={() => setPage(current => current + 1)} aria-label="Next page"><ChevronRight size={17}/></button></div></div>}
     </section>
     {selectedLog && <DetailsDrawer log={selectedLog} onClose={() => setSelectedLog(null)}/>}
+    {clearDialogOpen && <ClearHistoryDialog title="Clear activity-log history?" recordLabel="activity-log events" count={pagination.total} preservationNote="A new audit event recording this clearance will be kept." saving={clearing} onClose={() => setClearDialogOpen(false)} onConfirm={clearHistory}/>}
   </main>;
 }

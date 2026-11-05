@@ -7,14 +7,14 @@ import { requireAdmin } from "../middleware/admin-auth";
 import { sendBrevoEmail, welcomeEmail } from "../services/brevo-email";
 import { generateEmployeeAccessCode } from "../utils/access-code";
 import { authorizedSiteIds, canAccessSite } from "../utils/admin-access";
-import { createEmployeeSchema as createSchema, updateEmployeeSchema as updateSchema, normalizeUKPhone } from "../utils/employee-validation";
+import { createEmployeeSchema as createSchema, updateEmployeeSchema as updateSchema, normalizeInternationalPhone } from "../utils/employee-validation";
 
 const router = Router();
 router.use(requireAdmin);
 
 const statusSchema = z.object({ isActive: z.boolean() });
 const legacyResetSchema = z.object({ accessCode: z.string().regex(/^\d{6}$/, "Access code must be exactly 6 digits.") });
-const DOCUMENT_TYPES = ["WORKER_ID", "MEDICAL", "OTHER"] as const;
+const DOCUMENT_TYPES = ["WORKER_ID", "MEDICAL", "INSURANCE", "OTHER"] as const;
 const uploadDocumentSchema = z.object({
   documentType: z.enum(DOCUMENT_TYPES),
   documentName: z.string().trim().min(1).max(191),
@@ -23,13 +23,16 @@ const uploadDocumentSchema = z.object({
   mimeType: z.enum(["application/pdf", "image/jpeg", "image/png"]),
   dataBase64: z.string().min(1).max(7_000_000),
 }).strict();
+const updateDocumentExpirySchema = z.object({
+  expiresAt: z.string().datetime().nullable(),
+}).strict();
 const publicEmployeeSelect = { id: true, employeeCode: true, fullName: true, email: true, phone: true, address: true, siteId: true, isActive: true, archivedAt: true, createdAt: true, updatedAt: true } as const;
 const resendLimit = rateLimit({ windowMs: 15 * 60 * 1000, limit: 5, standardHeaders: "draft-8", legacyHeaders: false, message: { success: false, message: "Too many access-code resend attempts. Please try again later." } });
 
 function isUnique(error: unknown) { return typeof error === "object" && error !== null && "code" in error && error.code === "P2002"; }
 function idempotencyKey(req: any) { const value = req.header("idempotency-key"); return typeof value === "string" && /^[A-Za-z0-9._-]{16,191}$/.test(value) ? value : null; }
 function normalizeEmail(value: string) { return value.trim().toLowerCase(); }
-function phoneError(res: any) { return res.status(400).json({ success: false, message: "Enter a valid UK phone number, for example 07700 900123 or +44 7700 900123." }); }
+function phoneError(res: any) { return res.status(400).json({ success: false, message: "Enter a valid phone number with country code, for example +94 757 949 092 or +44 7700 900123." }); }
 async function siteFor(siteCode: string, adminId: string, role: string) {
   const site = await prisma.constructionSite.findUnique({ where: { siteCode }, select: { id: true, siteCode: true, name: true, isActive: true } });
   return site && await canAccessSite(adminId, role, site.id) ? site : null;
@@ -42,7 +45,7 @@ async function sendAndRecord(deliveryId: string, input: Parameters<typeof sendBr
   await prisma.emailDelivery.update({ where: { id: deliveryId }, data: { status: result.status, brevoMessageId: result.messageId, attemptCount: { increment: 1 }, lastError: result.error || null } });
   return result;
 }
-async function duplicateEmail(emailAddress: string, excludeEmployeeId?: string) { return prisma.employee.findFirst({ where: { email: normalizeEmail(emailAddress), ...(excludeEmployeeId ? { id: { not: excludeEmployeeId } } : {}) }, select: { id: true } }); }
+async function duplicateEmail(emailAddress: string, excludeEmployeeId?: string) { return prisma.employee.findFirst({ where: { email: normalizeEmail(emailAddress), archivedAt: null, ...(excludeEmployeeId ? { id: { not: excludeEmployeeId } } : {}) }, select: { id: true } }); }
 async function scopedEmployee(employeeId: string, adminId: string, role: string) {
   const employee = await prisma.employee.findFirst({ where: { id: employeeId, archivedAt: null }, select: { id: true, employeeCode: true, fullName: true, siteId: true, site: { select: { siteCode: true, name: true } } } });
   return employee && await canAccessSite(adminId, role, employee.siteId) ? employee : null;
@@ -65,7 +68,7 @@ function matchesMimeType(data: Buffer, mimeType: string) {
 router.post("/", async (req, res) => {
   const parsed = createSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ success: false, message: parsed.error.issues[0]?.message || "Invalid employee details.", errors: parsed.error.issues });
-  const normalizedPhone = normalizeUKPhone(parsed.data.phone);
+  const normalizedPhone = normalizeInternationalPhone(parsed.data.phone);
   if (parsed.data.phone && !normalizedPhone) return phoneError(res);
   const key = idempotencyKey(req);
   if (!key) return res.status(400).json({ success: false, message: "An Idempotency-Key header is required for employee creation." });
@@ -79,9 +82,9 @@ router.post("/", async (req, res) => {
     const result = await prisma.$transaction(async (tx) => {
       const prior = await tx.employeeCreationRequest.findUnique({ where: { idempotencyKey: key }, include: { employee: { select: publicEmployeeSelect } } });
       if (prior) return { employee: prior.employee, delivery: await tx.emailDelivery.findFirst({ where: { employeeId: prior.employee.id }, orderBy: { createdAt: "desc" }, select: { id: true, status: true } }), reused: true };
-      if (await tx.employee.findFirst({ where: { email: normalizedEmail }, select: { id: true } })) throw new Error("DUPLICATE_EMAIL");
+      if (await tx.employee.findFirst({ where: { email: normalizedEmail, archivedAt: null }, select: { id: true } })) throw new Error("DUPLICATE_EMAIL");
       const sequence = await tx.employeeIdSequence.update({ where: { id: 1 }, data: { nextValue: { increment: 1 } } });
-      const employeeCode = `EMP-${String(sequence.nextValue - 1).padStart(6, "0")}`;
+      const employeeCode = `EMP-${String(sequence.nextValue - 1).padStart(3, "0")}`;
       accessCode = generateEmployeeAccessCode();
       const employee = await tx.employee.create({ data: { employeeCode, fullName: parsed.data.fullName, email: normalizedEmail, phone: normalizedPhone, address: parsed.data.address || null, siteId: site.id, accessCodeHash: await bcrypt.hash(accessCode, 12) }, select: publicEmployeeSelect });
       await tx.employeeCreationRequest.create({ data: { idempotencyKey: key, employeeId: employee.id } });
@@ -119,7 +122,7 @@ router.get("/:employeeId", async (req, res) => {
 router.patch("/:employeeId", async (req, res) => {
   const parsed = updateSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ success: false, message: parsed.error.issues[0]?.message || "Invalid employee update.", errors: parsed.error.issues });
-  const normalizedPhone = parsed.data.phone === undefined ? undefined : normalizeUKPhone(parsed.data.phone);
+  const normalizedPhone = parsed.data.phone === undefined ? undefined : normalizeInternationalPhone(parsed.data.phone);
   if (parsed.data.phone && !normalizedPhone) return phoneError(res);
   const existing = await scopedEmployee(req.params.employeeId, req.admin!.sub, req.admin!.role);
   if (!existing) return res.status(404).json({ success: false, message: "Employee not found." });
@@ -207,15 +210,43 @@ router.post("/:employeeId/documents", async (req, res) => {
   if (!employee) return res.status(404).json({ success: false, message: "Employee not found." });
   const expiresAt = parsed.data.expiresAt ? new Date(parsed.data.expiresAt) : null;
   if (expiresAt && Number.isNaN(expiresAt.getTime())) return res.status(400).json({ success: false, message: "Enter a valid expiry date." });
-  const document = await prisma.$transaction(async tx => {
+  try {
+    const document = await prisma.$transaction(async tx => {
+      // Serialise document creation per employee so two simultaneous uploads cannot
+      // create two Worker IDs for the same person.
+      await tx.$queryRaw`SELECT id FROM Employee WHERE id = ${employee.id} FOR UPDATE`;
+      if (parsed.data.documentType === "WORKER_ID") {
+        const existingWorkerId = await tx.employeeDocument.findFirst({ where: { employeeId: employee.id, documentType: "WORKER_ID" }, select: { id: true } });
+        if (existingWorkerId) throw new Error("WORKER_ID_EXISTS");
+      }
     const created = await tx.employeeDocument.create({ data: {
       employeeId: employee.id, documentType: parsed.data.documentType, documentName: parsed.data.documentName,
       fileName: parsed.data.fileName.replace(/[\\/]/g, "_"), mimeType: parsed.data.mimeType, fileSize: fileData.length, fileData, expiresAt,
     }, select: { id: true, documentType: true, documentName: true, fileName: true, mimeType: true, fileSize: true, expiresAt: true, createdAt: true, updatedAt: true } });
     await tx.auditLog.create({ data: { actorId: req.admin!.sub, actorType: "ADMINISTRATOR", action: "EMPLOYEE_DOCUMENT_UPLOADED", entityType: "EmployeeDocument", entityId: created.id, details: { employeeId: employee.id, employeeCode: employee.employeeCode, documentType: created.documentType, documentName: created.documentName, expiresAt: created.expiresAt?.toISOString() ?? null } } });
     return created;
+    });
+    return res.status(201).json({ success: true, document: documentSummary(document), message: "Employee document uploaded." });
+  } catch (error) {
+    if (error instanceof Error && error.message === "WORKER_ID_EXISTS") return res.status(409).json({ success: false, message: "This employee already has a Worker ID. Delete it before uploading a replacement." });
+    console.error("Employee document upload failed:", error instanceof Error ? error.message : "Unknown error");
+    return res.status(500).json({ success: false, message: "Unable to upload the document." });
+  }
+});
+
+router.patch("/documents/:documentId", async (req, res) => {
+  const parsed = updateDocumentExpirySchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ success: false, message: "Enter a valid expiry date." });
+  const document = await prisma.employeeDocument.findUnique({ where: { id: req.params.documentId }, include: { employee: { select: { id: true, siteId: true, employeeCode: true, archivedAt: true } } } });
+  if (!document || document.employee.archivedAt || !(await canAccessSite(req.admin!.sub, req.admin!.role, document.employee.siteId))) return res.status(404).json({ success: false, message: "Document not found." });
+  const expiresAt = parsed.data.expiresAt ? new Date(parsed.data.expiresAt) : null;
+  if (expiresAt && Number.isNaN(expiresAt.getTime())) return res.status(400).json({ success: false, message: "Enter a valid expiry date." });
+  const updated = await prisma.$transaction(async tx => {
+    const result = await tx.employeeDocument.update({ where: { id: document.id }, data: { expiresAt }, select: { id: true, documentType: true, documentName: true, fileName: true, mimeType: true, fileSize: true, expiresAt: true, createdAt: true, updatedAt: true } });
+    await tx.auditLog.create({ data: { actorId: req.admin!.sub, actorType: "ADMINISTRATOR", action: "EMPLOYEE_DOCUMENT_EXPIRY_UPDATED", entityType: "EmployeeDocument", entityId: result.id, details: { employeeId: document.employee.id, employeeCode: document.employee.employeeCode, documentType: result.documentType, documentName: result.documentName, expiresAt: result.expiresAt?.toISOString() ?? null } } });
+    return result;
   });
-  return res.status(201).json({ success: true, document: documentSummary(document), message: "Employee document uploaded." });
+  return res.json({ success: true, document: documentSummary(updated), message: "Document expiry date updated." });
 });
 
 router.get("/documents/:documentId/download", async (req, res) => {

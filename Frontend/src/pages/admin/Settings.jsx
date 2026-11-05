@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Clock3, LockKeyhole, Mail, Save, ShieldCheck, UserRound } from 'lucide-react';
+import { Clock3, LockKeyhole, Mail, Phone, Save, ShieldCheck, UserRound } from 'lucide-react';
 import { toast } from 'sonner';
 import PageHeader from '../../components/common/PageHeader';
 import { apiErrorMessage, verificationApi } from '../../services/api';
@@ -22,7 +22,7 @@ const storedLockMinutes = userId => {
 
 export default function Settings() {
   const { user, updateUser } = useAuth();
-  const [profile, setProfile] = useState({ fullName: user?.fullName || '', email: user?.email || '' });
+  const [profile, setProfile] = useState({ fullName: user?.fullName || '', email: user?.email || '', phone: user?.phone || '' });
   const [password, setPassword] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [lockMinutes, setLockMinutes] = useState(() => storedLockMinutes(user?.id || 'admin'));
   const [loading, setLoading] = useState(true);
@@ -34,7 +34,7 @@ export default function Settings() {
     verificationApi.getAdminProfile()
       .then(({ data }) => {
         if (active && data.administrator) {
-          setProfile({ fullName: data.administrator.fullName, email: data.administrator.email });
+          setProfile({ fullName: data.administrator.fullName, email: data.administrator.email, phone: data.administrator.phone || '' });
           updateUser(data.administrator);
         }
       })
@@ -49,7 +49,7 @@ export default function Settings() {
     try {
       const { data } = await verificationApi.updateAdminProfile(profile);
       updateUser(data.administrator);
-      setProfile({ fullName: data.administrator.fullName, email: data.administrator.email });
+      setProfile({ fullName: data.administrator.fullName, email: data.administrator.email, phone: data.administrator.phone || '' });
       toast.success('Profile updated successfully.');
     } catch (error) {
       toast.error(apiErrorMessage(error, 'Unable to update your profile.'));
@@ -88,10 +88,11 @@ export default function Settings() {
     <PageHeader title="Settings" description="Manage your administrator profile and security preferences." />
     {loading ? <div className="card p-6 text-slate-500">Loading settings...</div> : <div className="grid xl:grid-cols-2 gap-5">
       <section className="card p-6">
-        <div className="flex items-start gap-3"><span className="w-11 h-11 rounded-xl bg-blue-50 text-[#102a56] grid place-items-center"><UserRound size={21} /></span><div><h2 className="font-bold text-[#102a56]">Profile</h2><p className="text-sm text-slate-500 mt-1">Update the name and email used for administrator access.</p></div></div>
+        <div className="flex items-start gap-3"><span className="w-11 h-11 rounded-xl bg-blue-50 text-[#102a56] grid place-items-center"><UserRound size={21} /></span><div><h2 className="font-bold text-[#102a56]">Profile</h2><p className="text-sm text-slate-500 mt-1">Update the administrator contact details shown to employees.</p></div></div>
         <form className="mt-6 space-y-4" onSubmit={saveProfile}>
           <label className="block"><span className="text-sm font-semibold">Full name</span><input required minLength="2" maxLength="120" className="field mt-2" value={profile.fullName} onChange={event => setProfile({ ...profile, fullName: event.target.value })} /></label>
           <label className="block"><span className="text-sm font-semibold">Email address</span><div className="relative mt-2"><Mail size={16} className="absolute left-3 top-3 text-slate-400" /><input required type="email" maxLength="191" className="field pl-9" value={profile.email} onChange={event => setProfile({ ...profile, email: event.target.value })} /></div></label>
+          <label className="block"><span className="text-sm font-semibold">Phone number</span><div className="relative mt-2"><Phone size={16} className="absolute left-3 top-3 text-slate-400" /><input type="tel" inputMode="tel" maxLength="50" className="field pl-9" placeholder="+94 757 949 092" value={profile.phone} onChange={event => setProfile({ ...profile, phone: event.target.value })} /></div><p className="text-xs text-slate-400 mt-2">Use a country code so employees can contact you.</p></label>
           <button className="btn btn-primary" disabled={savingProfile}><Save size={16} />{savingProfile ? 'Saving...' : 'Save profile'}</button>
         </form>
       </section>

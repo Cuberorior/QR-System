@@ -1,5 +1,6 @@
 import { prisma } from "../config/prisma";
 import { Prisma } from "../../generated/prisma/client";
+import { expireOpenAttendance } from "./attendance-auto-exit";
 
 /** Reporting follows the UTC calendar used by attendance and visitor reports. */
 export function dashboardDays(now: Date) {
@@ -25,6 +26,7 @@ export function currentWeekRange(now: Date) {
 }
 
 export async function dashboardSummary(siteIds: string[], now = new Date()) {
+  await expireOpenAttendance(now, { siteId: { in: siteIds } });
   const days = dashboardDays(now);
   const today = days[6];
   const currentWeek = currentWeekRange(now);
@@ -32,7 +34,8 @@ export async function dashboardSummary(siteIds: string[], now = new Date()) {
   const todayRange = { gte: today.start, lt: today.end };
   // A single consistent snapshot; bounded database counts, never full history downloads.
   return prisma.$transaction(async (tx) => {
-    const site = await tx.constructionSite.findFirst({ where: { id: { in: siteIds } }, select: { id: true, name: true, siteCode: true, isActive: true } });
+    const sites = await tx.constructionSite.findMany({ where: { id: { in: siteIds } }, select: { id: true, name: true, siteCode: true, isActive: true }, orderBy: { name: "asc" } });
+    const site = sites.length === 1 ? sites[0] : null;
     const checkedInEmployees = await tx.attendanceRecord.count({ where: { ...scope, status: "OPEN" } });
     const checkedInVisitors = await tx.visitorVisit.count({ where: { ...scope, visitStatus: "CHECKED_IN" } });
     const completedVisits = await tx.visitorVisit.count({ where: { ...scope, visitStatus: "CHECKED_OUT", exitTime: todayRange } });
@@ -53,6 +56,7 @@ export async function dashboardSummary(siteIds: string[], now = new Date()) {
     const exitsByDate = new Map(exits.map(row => [row.date, Number(row.total)]));
     const accessOverview = days.map(day => ({ date: day.date, entries: entriesByDate.get(day.date) ?? 0, exits: exitsByDate.get(day.date) ?? 0 }));
     // Retain legacy response fields for existing API consumers, without displaying approval metrics.
+    const totalEmployees = await tx.employee.count({ where: scope });
     const activeEmployees = await tx.employee.count({ where: { ...scope, isActive: true } });
     const pendingVisitorApprovals = await tx.visitorVisit.count({ where: { ...scope, approvalStatus: "PENDING" } });
     const todayVisitorEntries = await tx.visitorVisit.count({ where: { ...scope, entryTime: todayRange } });
@@ -66,8 +70,8 @@ export async function dashboardSummary(siteIds: string[], now = new Date()) {
       select: { id: true, purpose: true, entryTime: true, exitTime: true, visitStatus: true, revokedAt: true, credentialExpiresAt: true, visitor: { select: { fullName: true, visitorCode: true } } },
     });
     return {
-      success: true, site, timezone: "UTC", generatedAt: now.toISOString(),
-      stats: { activeSites: site?.isActive ? 1 : 0, activeEmployees, pendingVisitorApprovals, todayVisitorEntries, todayVisitorExits, checkedInEmployees, todayEntries: accessOverview[6].entries, todayExits: accessOverview[6].exits, checkedInVisitors },
+      success: true, site, sites, timezone: "UTC", generatedAt: now.toISOString(),
+      stats: { totalSites: sites.length, activeSites: sites.filter((item) => item.isActive).length, totalEmployees, activeEmployees, pendingVisitorApprovals, todayVisitorEntries, todayVisitorExits, checkedInEmployees, todayEntries: accessOverview[6].entries, todayExits: accessOverview[6].exits, checkedInVisitors },
       accessOverview,
       // Disjoint session sets: currently open (including overnight) and closed today.
       attendanceStatus: { checkedIn: checkedInEmployees, checkedOut: accessOverview[6].exits },

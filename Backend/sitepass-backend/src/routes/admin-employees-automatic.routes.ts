@@ -42,7 +42,7 @@ router.post("/", async (req, res) => {
       const prior = await tx.employeeCreationRequest.findUnique({ where: { idempotencyKey: key }, include: { employee: { select: publicEmployeeSelect } } });
       if (prior) return { employee: prior.employee, delivery: await tx.emailDelivery.findFirst({ where: { employeeId: prior.employee.id }, orderBy: { createdAt: "desc" }, select: { id: true, status: true } }), reused: true };
       const sequence = await tx.employeeIdSequence.update({ where: { id: 1 }, data: { nextValue: { increment: 1 } } });
-      const employeeCode = `EMP-${String(sequence.nextValue - 1).padStart(6, "0")}`; accessCode = newAccessCode();
+      const employeeCode = `EMP-${String(sequence.nextValue - 1).padStart(3, "0")}`; accessCode = newAccessCode();
       const employee = await tx.employee.create({ data: { employeeCode, fullName: parsed.data.fullName, email: parsed.data.email.toLowerCase(), phone: parsed.data.phone || null, siteId: site.id, accessCodeHash: await bcrypt.hash(accessCode, 12) }, select: publicEmployeeSelect });
       await tx.employeeCreationRequest.create({ data: { idempotencyKey: key, employeeId: employee.id } });
       const delivery = await tx.emailDelivery.create({ data: { employeeId: employee.id, recipientEmail: parsed.data.email.toLowerCase(), emailType: "EMPLOYEE_WELCOME" }, select: { id: true, status: true } });

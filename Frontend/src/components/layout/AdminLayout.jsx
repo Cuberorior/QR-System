@@ -9,7 +9,7 @@ import './admin-shell.css';
 
 const links = [
   { to: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { to: '/admin/sites', label: 'Construction Site', icon: Building2 },
+  { to: '/admin/sites', label: 'Construction Sites', icon: Building2 },
   { to: '/admin/employees', label: 'Employees', icon: Users },
   { to: '/admin/attendance', label: 'Attendance', icon: ClipboardCheck },
   { to: '/admin/visitors', label: 'Visitors', icon: UserRoundCheck },
@@ -24,8 +24,8 @@ export default function AdminLayout() {
   const location = useLocation();
   const menuButton = useRef(null);
   const sidebar = useRef(null);
-  const siteQuery = useQuery({ queryKey: ['admin-shell-site', user?.id], queryFn: async () => (await verificationApi.listSites()).data.sites?.[0] ?? null, retry: 1 });
-  const site = siteQuery.data;
+  const siteQuery = useQuery({ queryKey: ['admin-shell-site', user?.id], queryFn: async () => (await verificationApi.listSites()).data.sites || [], retry: 1 });
+  const sites = siteQuery.data || [];
   const close = () => { setOpen(false); menuButton.current?.focus(); };
   useEffect(() => {
     if (!open) return;
@@ -72,7 +72,7 @@ export default function AdminLayout() {
       <div className="sidebar-brand"><Brand light /><button className="mobile-menu icon-button" aria-label="Close navigation" onClick={close}><X size={20}/></button></div>
       <p className="sidebar-caption">SITE MANAGEMENT</p>
       <nav>{links.map(({ to, label, icon: Icon }) => <NavLink key={to} to={to} onClick={() => setOpen(false)} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}><Icon size={19}/><span>{label}</span></NavLink>)}</nav>
-      <div className="sidebar-bottom"><div className="sidebar-site"><div className="sidebar-site-icon"><Building2 size={19}/></div><div><p className="sidebar-caption">YOUR CONSTRUCTION SITE</p><strong>{siteQuery.isPending ? 'Loading site…' : siteQuery.isError ? 'Site unavailable' : site?.name || 'No site configured'}</strong>{site && <span className={`site-presence ${site.isActive ? 'is-active' : ''}`}><i/>{site.isActive ? 'Active site' : 'Inactive site'}</span>}</div></div><button className="nav-item logout-button" onClick={() => { logout(); nav('/admin/login'); }}><LogOut size={18}/>Log out</button><p className="sidebar-footnote">SITEPASS · Site access, simplified.</p></div>
+      <div className="sidebar-bottom"><div className="sidebar-site"><div className="sidebar-site-icon"><Building2 size={19}/></div><div><p className="sidebar-caption">CONSTRUCTION SITES</p><strong>{siteQuery.isPending ? 'Loading sites…' : siteQuery.isError ? 'Sites unavailable' : `${sites.length} configured`}</strong><span className={`site-presence ${sites.some(site => site.isActive) ? 'is-active' : ''}`}><i/>{sites.filter(site => site.isActive).length} active site{sites.filter(site => site.isActive).length === 1 ? '' : 's'}</span></div></div><button className="nav-item logout-button" onClick={() => { logout(); nav('/admin/login'); }}><LogOut size={18}/>Log out</button><p className="sidebar-footnote">SITEPASS · Site access, simplified.</p></div>
     </aside>
     <section className="admin-main" inert={open ? '' : undefined}>
       <header className="admin-topbar"><div className="topbar-location"><button ref={menuButton} className="mobile-menu icon-button" aria-label="Open navigation" aria-expanded={open} aria-controls="admin-navigation" onClick={() => setOpen(true)}><Menu size={21}/></button><span className="topbar-workspace">Workspace</span><ChevronRight size={14}/><strong>{links.find(item => location.pathname.startsWith(item.to))?.label || 'Administration'}</strong></div><div className="admin-profile"><div><strong>{name}</strong><span>{user?.role === 'ADMIN' ? 'Administrator' : user?.role || 'Administrator'}</span></div><div className="profile-initials" aria-hidden="true">{initials}</div></div></header>

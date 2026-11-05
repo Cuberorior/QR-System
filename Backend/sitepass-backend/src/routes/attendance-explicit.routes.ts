@@ -6,6 +6,7 @@ import { z } from "zod";
 import { prisma } from "../config/prisma";
 import { SAFETY_CHECKLIST_VERSION } from "./safety.routes";
 import { expireAttendanceBatch, expireOpenAttendance } from "../services/attendance-auto-exit";
+import { employeeCodeCandidates } from "../utils/employee-code";
 
 const router = Router();
 const actionSchema = z.enum(["ENTRY", "EXIT"]);
@@ -14,13 +15,30 @@ const verificationRateLimit = rateLimit({ windowMs: 15 * 60 * 1000, limit: 20, s
 const hashToken = (value: string) => createHash("sha256").update(value).digest("hex");
 const iso = (value: Date | null) => value ? value.toISOString() : null;
 class VerificationFailure extends Error { status: number; constructor(message: string, status = 401) { super(message); this.status = status; } }
-function startOfUtcDay(value: Date) { return new Date(Date.UTC(value.getUTCFullYear(), value.getUTCMonth(), value.getUTCDate())); }
+const siteTimezone = process.env.SITE_TIMEZONE || "Asia/Colombo";
+function localDateKey(value: Date) {
+  const parts = new Intl.DateTimeFormat("en-CA", { timeZone: siteTimezone, year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(value);
+  const valueFor = (type: Intl.DateTimeFormatPartTypes) => parts.find(part => part.type === type)?.value;
+  return `${valueFor("year")}-${valueFor("month")}-${valueFor("day")}`;
+}
+function workerIdExpiryStatus(expiresAt: Date | null, now: Date) {
+  if (!expiresAt) return null;
+  const expiresOn = expiresAt.toISOString().slice(0, 10);
+  const today = localDateKey(now);
+  const daysRemaining = Math.round((Date.parse(`${expiresOn}T00:00:00.000Z`) - Date.parse(`${today}T00:00:00.000Z`)) / 86_400_000);
+  return { expiresOn, daysRemaining, isExpiringSoon: daysRemaining >= 0 && daysRemaining <= 15 };
+}
+async function supportContact(siteId: string) {
+  const assigned = await prisma.adminSiteAssignment.findFirst({ where: { siteId, admin: { is: { isActive: true } } }, orderBy: { createdAt: "asc" }, select: { admin: { select: { fullName: true, email: true, phone: true } } } });
+  const administrator = assigned?.admin || await prisma.administrator.findFirst({ where: { isActive: true }, orderBy: { createdAt: "asc" }, select: { fullName: true, email: true, phone: true } });
+  return administrator ? { fullName: administrator.fullName, email: administrator.email, phone: administrator.phone } : null;
+}
 
 async function handleAttendance(req: any, res: any, forcedAction?: "ENTRY" | "EXIT") {
   const parsed = requestSchema.safeParse(req.body); if (!parsed.success) return res.status(400).json({ success: false, message: "Invalid attendance verification request." }); const action = forcedAction || parsed.data.action; if (!action) return res.status(400).json({ success: false, message: "An explicit attendance action is required." }); const { siteCode, employeeCode, accessCode, verificationToken, safetyToken } = parsed.data;
   try {
     const site = await prisma.constructionSite.findUnique({ where: { siteCode }, select: { id: true, siteCode: true, isActive: true, geofencingEnabled: true } }); if (!site || !site.isActive) return res.status(404).json({ success: false, message: "Construction site not found or inactive." });
-    const employee = await prisma.employee.findFirst({ where: { employeeCode, siteId: site.id, archivedAt: null }, select: { id: true, employeeCode: true, fullName: true, accessCodeHash: true, isActive: true } }); const matches = employee ? await bcrypt.compare(accessCode, employee.accessCodeHash) : false; if (!employee || !employee.isActive || !matches) return res.status(401).json({ success: false, message: "Employee verification failed." });
+    const employee = await prisma.employee.findFirst({ where: { employeeCode: { in: employeeCodeCandidates(employeeCode) }, siteId: site.id, archivedAt: null }, select: { id: true, employeeCode: true, fullName: true, accessCodeHash: true, isActive: true } }); const matches = employee ? await bcrypt.compare(accessCode, employee.accessCodeHash) : false; if (!employee || !employee.isActive || !matches) return res.status(401).json({ success: false, message: "Employee verification failed." });
     // Commit overdue exits even if the subsequent scan fails validation.
     await expireOpenAttendance(new Date(), { employeeId: employee.id, siteId: site.id });
     const result = await prisma.$transaction(async tx => {
@@ -29,12 +47,12 @@ async function handleAttendance(req: any, res: any, forcedAction?: "ENTRY" | "EX
       const currentEmployee = await tx.employee.findUnique({ where: { id: employee.id }, select: { isActive: true, archivedAt: true } });
       if (!currentEmployee?.isActive || currentEmployee.archivedAt) throw new VerificationFailure("Employee verification failed.");
       const now = new Date();
+      const workerId = action === "ENTRY" ? await tx.employeeDocument.findFirst({ where: { employeeId: employee.id, documentType: "WORKER_ID" }, orderBy: [{ createdAt: "desc" }, { id: "desc" }], select: { expiresAt: true } }) : null;
+      const workerIdExpiry = workerIdExpiryStatus(workerId?.expiresAt ?? null, now);
       if (action === "ENTRY") {
-        // The latest Worker ID is the active one. An expiry date is optional; when it is set,
-        // the employee may enter through that date and is blocked from the following day.
-        const workerId = await tx.employeeDocument.findFirst({ where: { employeeId: employee.id, documentType: "WORKER_ID" }, orderBy: { createdAt: "desc" }, select: { expiresAt: true } });
-        if (workerId?.expiresAt && workerId.expiresAt < startOfUtcDay(now)) {
-          throw new VerificationFailure(`You cannot enter because your Worker ID expired on ${workerId.expiresAt.toISOString().slice(0, 10)}. Please contact your site administrator.`, 403);
+        // The expiry date of the latest Worker ID document is valid through that date.
+        if (workerIdExpiry && workerIdExpiry.daysRemaining < 0) {
+          throw new VerificationFailure(`You cannot enter because your Worker ID expired on ${workerIdExpiry.expiresOn.replaceAll("-", ".")}. Please contact your site administrator.`, 403);
         }
       }
       await expireAttendanceBatch(tx, now, { employeeId: employee.id, siteId: site.id });
@@ -46,11 +64,12 @@ async function handleAttendance(req: any, res: any, forcedAction?: "ENTRY" | "EX
         if (!safetyToken) throw new VerificationFailure("A completed safety declaration is required before check-in.", 428);
         const safetyHash = hashToken(safetyToken); const declaration = await tx.safetyDeclaration.findFirst({ where: { siteId: site.id, tokenHash: safetyHash, intendedAction: "ENTRY", checklistVersion: SAFETY_CHECKLIST_VERSION, status: "DECLARED", consumedAt: null, tokenExpiresAt: { gt: now } } }); if (!declaration) throw new VerificationFailure("Safety declaration is invalid, expired, or already used.");
         const attendance = await tx.attendanceRecord.create({ data: { employeeId: employee.id, siteId: site.id, entryTime: now, status: "OPEN" } }); const consumed = await tx.safetyDeclaration.updateMany({ where: { id: declaration.id, siteId: site.id, tokenHash: safetyHash, status: "DECLARED", consumedAt: null, tokenExpiresAt: { gt: now } }, data: { employeeId: employee.id, attendanceRecordId: attendance.id, consumedAt: now, status: "CONSUMED" } }); if (consumed.count !== 1) throw new VerificationFailure("Safety declaration is invalid, expired, or already used.");
-        await tx.auditLog.create({ data: { actorId: employee.id, actorType: "EMPLOYEE", action: "SAFETY_DECLARATION_CONSUMED", entityType: "SafetyDeclaration", entityId: declaration.id, details: { siteCode, employeeCode, attendanceRecordId: attendance.id, action } } }); await tx.auditLog.create({ data: { actorId: employee.id, actorType: "EMPLOYEE", action: "ATTENDANCE_ENTRY", entityType: "AttendanceRecord", entityId: attendance.id, details: { siteCode, employeeCode, action } } }); return { action, attendance, safetyStatus: "DECLARED" as const };
+        await tx.auditLog.create({ data: { actorId: employee.id, actorType: "EMPLOYEE", action: "SAFETY_DECLARATION_CONSUMED", entityType: "SafetyDeclaration", entityId: declaration.id, details: { siteCode, employeeCode, attendanceRecordId: attendance.id, action } } }); await tx.auditLog.create({ data: { actorId: employee.id, actorType: "EMPLOYEE", action: "ATTENDANCE_ENTRY", entityType: "AttendanceRecord", entityId: attendance.id, details: { siteCode, employeeCode, action } } }); return { action, attendance, safetyStatus: "DECLARED" as const, workerIdExpiry };
       }
-      const updated = await tx.attendanceRecord.updateMany({ where: { id: openRecord!.id, status: "OPEN", exitTime: null }, data: { exitTime: now, status: "CLOSED" } }); if (updated.count !== 1) throw new VerificationFailure("This attendance session has already been closed. Refresh and try again.", 409); const attendance = { ...openRecord!, exitTime: now, status: "CLOSED" as const }; await tx.auditLog.create({ data: { actorId: employee.id, actorType: "EMPLOYEE", action: "ATTENDANCE_EXIT", entityType: "AttendanceRecord", entityId: attendance.id, details: { siteCode, employeeCode, action } } }); return { action, attendance, safetyStatus: "NOT_REQUIRED" as const };
+      const updated = await tx.attendanceRecord.updateMany({ where: { id: openRecord!.id, status: "OPEN", exitTime: null }, data: { exitTime: now, status: "CLOSED" } }); if (updated.count !== 1) throw new VerificationFailure("This attendance session has already been closed. Refresh and try again.", 409); const attendance = { ...openRecord!, exitTime: now, status: "CLOSED" as const }; await tx.auditLog.create({ data: { actorId: employee.id, actorType: "EMPLOYEE", action: "ATTENDANCE_EXIT", entityType: "AttendanceRecord", entityId: attendance.id, details: { siteCode, employeeCode, action } } }); return { action, attendance, safetyStatus: "NOT_REQUIRED" as const, workerIdExpiry };
     });
-    return res.status(200).json({ success: true, action: result.action, message: result.action === "ENTRY" ? "Entry recorded successfully" : "Exit recorded successfully", employee: { employeeCode: employee.employeeCode, fullName: employee.fullName }, attendance: { id: result.attendance.id, status: result.attendance.status, entryTime: iso(result.attendance.entryTime), exitTime: iso(result.attendance.exitTime), safetyStatus: result.safetyStatus } });
+    const contact = await supportContact(site.id);
+    return res.status(200).json({ success: true, action: result.action, message: result.action === "ENTRY" ? "Entry recorded successfully" : "Exit recorded successfully", employee: { employeeCode: employee.employeeCode, fullName: employee.fullName }, attendance: { id: result.attendance.id, status: result.attendance.status, entryTime: iso(result.attendance.entryTime), exitTime: iso(result.attendance.exitTime), safetyStatus: result.safetyStatus }, workerIdExpiry: result.workerIdExpiry, contact });
   } catch (error) { if (error instanceof VerificationFailure) return res.status(error.status).json({ success: false, message: error.message }); console.error("Attendance verification failed:", error instanceof Error ? error.message : "Unknown error"); return res.status(500).json({ success: false, message: "Unable to record attendance at this time." }); }
 }
 

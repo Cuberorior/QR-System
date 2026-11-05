@@ -2,21 +2,23 @@ import { useEffect, useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight, Download, Filter, Mail, Search, X } from 'lucide-react';
 import PageHeader from '../../components/common/PageHeader';
 import StatusBadge from '../../components/common/StatusBadge';
+import SiteSelector, { savedSiteCode } from '../../components/common/SiteSelector';
 import { apiErrorMessage, verificationApi } from '../../services/api';
 import { toast } from 'sonner';
 
-const INITIAL = { q: '', email: '', purpose: '', visitStatus: '', safetyStatus: '', from: '', to: '', page: 1, pageSize: 25 };
+const INITIAL = { siteCode: savedSiteCode(), q: '', email: '', purpose: '', visitStatus: '', safetyStatus: '', from: '', to: '', page: 1, pageSize: 25 };
 const UTC_FORMAT = { dateStyle: 'medium', timeStyle: 'short', timeZone: 'UTC' };
 const statusText = value => ({ REGISTERED: 'Registered', CHECKED_IN: 'Checked In', CHECKED_OUT: 'Checked Out', CANCELLED: 'Cancelled' }[value] || value || '—');
 const safetyText = value => ({ COMPLETED: 'Completed', PENDING: 'Pending', NOT_RECORDED: 'Not recorded' }[value] || 'Not recorded');
 const displayTime = (value, empty) => value ? new Date(value).toLocaleString(undefined, UTC_FORMAT) : empty;
-function params(filters, paging = true) { return { ...(filters.q.trim() ? { q: filters.q.trim() } : {}), ...(filters.email.trim() ? { email: filters.email.trim() } : {}), ...(filters.purpose.trim() ? { purpose: filters.purpose.trim() } : {}), ...(filters.visitStatus ? { visitStatus: filters.visitStatus } : {}), ...(filters.safetyStatus ? { safetyStatus: filters.safetyStatus } : {}), ...(filters.from ? { from: `${filters.from}T00:00:00.000Z` } : {}), ...(filters.to ? { to: `${filters.to}T23:59:59.999Z` } : {}), ...(paging ? { page: filters.page, pageSize: filters.pageSize } : {}) }; }
+function params(filters, paging = true) { return { ...(filters.siteCode ? { siteCode: filters.siteCode } : {}), ...(filters.q.trim() ? { q: filters.q.trim() } : {}), ...(filters.email.trim() ? { email: filters.email.trim() } : {}), ...(filters.purpose.trim() ? { purpose: filters.purpose.trim() } : {}), ...(filters.visitStatus ? { visitStatus: filters.visitStatus } : {}), ...(filters.safetyStatus ? { safetyStatus: filters.safetyStatus } : {}), ...(filters.from ? { from: `${filters.from}T00:00:00.000Z` } : {}), ...(filters.to ? { to: `${filters.to}T23:59:59.999Z` } : {}), ...(paging ? { page: filters.page, pageSize: filters.pageSize } : {}) }; }
 
 export default function VisitorsSingleSite() {
-  const [filters, setFilters] = useState(INITIAL); const [items, setItems] = useState([]); const [pagination, setPagination] = useState({ page: 1, pageSize: 25, total: 0, totalPages: 0 }); const [loading, setLoading] = useState(true); const [exporting, setExporting] = useState(false); const [error, setError] = useState('');
+  const [filters, setFilters] = useState(INITIAL); const [sites, setSites] = useState([]); const [items, setItems] = useState([]); const [pagination, setPagination] = useState({ page: 1, pageSize: 25, total: 0, totalPages: 0 }); const [loading, setLoading] = useState(true); const [exporting, setExporting] = useState(false); const [error, setError] = useState('');
   const update = changes => setFilters(current => ({ ...current, ...changes, ...(changes.page === undefined ? { page: 1 } : {}) }));
   const load = async () => { setLoading(true); setError(''); try { const { data } = await verificationApi.listVisitors(params(filters)); setItems(data.visitors || []); setPagination(data.pagination || { page: filters.page, pageSize: filters.pageSize, total: 0, totalPages: 0 }); } catch (loadError) { setItems([]); setError(apiErrorMessage(loadError, 'Unable to load visitors.')); } finally { setLoading(false); } };
-  useEffect(() => { const timer = window.setTimeout(load, filters.q || filters.email || filters.purpose ? 300 : 0); return () => window.clearTimeout(timer); }, [filters.q, filters.email, filters.purpose, filters.visitStatus, filters.safetyStatus, filters.from, filters.to, filters.page, filters.pageSize]);
+  useEffect(() => { verificationApi.listSites().then(({ data }) => setSites(data.sites || [])).catch(loadError => toast.error(apiErrorMessage(loadError, 'Unable to load construction sites.'))); }, []);
+  useEffect(() => { const timer = window.setTimeout(load, filters.q || filters.email || filters.purpose ? 300 : 0); return () => window.clearTimeout(timer); }, [filters.siteCode, filters.q, filters.email, filters.purpose, filters.visitStatus, filters.safetyStatus, filters.from, filters.to, filters.page, filters.pageSize]);
   const reset = () => setFilters(INITIAL); const activeFilterCount = useMemo(() => Object.entries(filters).filter(([key, value]) => !['page', 'pageSize'].includes(key) && value).length, [filters]);
   const revoke = async id => { try { await verificationApi.revokeVisitor(id); toast.success('Visitor access revoked.'); load(); } catch (actionError) { toast.error(apiErrorMessage(actionError, 'Unable to revoke visitor access.')); } };
   const regenerate = async id => { try { await verificationApi.regenerateVisitorAccessCode(id); toast.success('New visitor credentials sent by email.'); load(); } catch (actionError) { toast.error(apiErrorMessage(actionError, 'Unable to regenerate visitor credentials.')); } };

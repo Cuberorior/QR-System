@@ -21,10 +21,7 @@
 				"run",
 				"dev",
 				"--prefix",
-				"Frontend",
-				"--",
-				"--host",
-				"127.0.0.1"
+				"Frontend"
 			],
 			"isBackground": true,
 			"problemMatcher": []

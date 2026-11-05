@@ -54,6 +54,7 @@ model Administrator {
   id           String    @id @default(cuid())
   fullName     String
   email        String    @unique
+  phone        String?   @db.VarChar(50)
   passwordHash String
   role         AdminRole @default(ADMIN)
   isActive     Boolean   @default(true)

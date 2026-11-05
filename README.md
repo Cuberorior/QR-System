@@ -30,6 +30,7 @@ This repository contains a React/Vite frontend, an Express/TypeScript backend, a
 - Provides separate entry and exit actions for employees and visitors.
 - Requests browser geolocation and verifies the user against the construction-site geofence.
 - Verifies employee credentials and records an entry or exit attendance event.
+- Automatically closes an employee's open attendance after 10 hours if no exit QR was scanned. The recorded exit is exactly entry time + 10 hours (for example, 8:00 AM → 6:00 PM); an earlier scanned exit keeps its actual time.
 - Requires a safety checklist before employee entry where the active flow applies it.
 - Allows visitors to register, verify their email, receive administrator approval, check in, and check out.
 - Shows visitor registration status and access results.
@@ -40,7 +41,9 @@ This repository contains a React/Vite frontend, an Express/TypeScript backend, a
 - Administrator login protected by bcrypt password hashes and short-lived JWTs.
 - Dashboard metrics and recent activity.
 - Employee creation, listing, updates, activation/deactivation, and access-code regeneration.
+- Add/edit employee validation: name is required (maximum **30 characters**, including spaces; letters in any language, spaces, apostrophes, periods, and hyphens). Email is required, must be valid and unique, and allows up to 191 characters. Optional addresses allow **50 words** and **500 characters**, including multiline addresses. Optional phone numbers must be UK numbers in local, `0044`, or `+44` format and are stored in `+44` format. For example, `07700 900123` is stored as `+447700900123`; the sample mobile number uses [Ofcom?s reserved drama range](https://www.ofcom.org.uk/phones-and-broadband/phone-numbers/numbers-for-drama). Creating an employee requires an active, authorized construction site. The form displays a name character counter, address word count, and field errors, and the API enforces the same limits. Long directory values use two-line previews within fixed columns instead of shifting the table. Hover to see the full value, or open Edit employee to read it on touch devices.
 - Attendance history, safety status, filtering, and CSV/PDF export.
+- In **Admin > Attendance**, select **View details** beneath a recorded safety status to review the employee's checklist responses, site, submission time (UTC), and checklist version. Rows without a declaration show **No declaration recorded**.
 - Visitor review, approval/rejection, credential regeneration, revocation, check-in, and check-out.
 - Construction-site management, active/inactive status, GPS coordinates, and geofence settings.
 - Permanent entry and exit QR code generation and poster printing.
@@ -262,6 +265,16 @@ For local development, use `VITE_API_BASE_URL=/api`. Vite proxies `/api` request
 
 ## Backend
 
+### Automatic employee exit after 10 hours
+
+Open employee sessions expire after 10 elapsed hours, including overnight sessions. A long-running backend checks at startup and every minute. Attendance views, CSV/PDF exports, dashboard requests, and verified employee scans also reconcile overdue sessions before using attendance data. The attendance page and dashboard refresh every minute while visible.
+
+If the server was stopped, the next startup or relevant request closes overdue sessions using **entry time + 10 hours**, not the later processing time. Existing overdue open sessions are included. Manual exits that were already recorded remain unchanged, and employees can check in again after their previous session expires.
+
+Each automatic exit is recorded in Activity Logs as **Employee Automatically Checked Out (10 hours)** by **SYSTEM**, including the effective exit time and processing time. This is an assumed exit under the attendance policy, not confirmation of physical departure. The rule applies to employees; visitor sessions keep their existing workflow.
+
+On serverless deployments, request-time reconciliation remains active, but the minute timer does not run continuously. For database updates during periods with no traffic, run the long-running backend or configure a scheduled worker to call the `expireOpenAttendance` service.
+
 The backend is an Express API. It connects to MySQL before listening and exits if the database connection cannot be established.
 
 ```powershell
@@ -405,6 +418,7 @@ cd ..\Backend\sitepass-backend
 npm run build
 npm run test:integration       # running API and admin credentials required
 npm run test:management        # running API required
+npm run test:attendance-auto-exit # database required; test fixtures are rolled back
 npm run test:email-service
 npm run email:test recipient@example.com
 npm run email:preview recipient@example.com
