@@ -8,6 +8,7 @@ export default defineConfig({
   },
   datasource: {
     url: env("DATABASE_URL"),
-    shadowDatabaseUrl: env("SHADOW_DATABASE_URL"),
+    // Only development migrations need a shadow database.
+    shadowDatabaseUrl: process.env.SHADOW_DATABASE_URL || undefined,
   },
 });

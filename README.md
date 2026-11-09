@@ -73,8 +73,7 @@ QR project/
 │   │   ├── services/            Axios API client and verification session helpers
 │   │   ├── mock/                Demo-mode in-memory data and services
 │   │   └── context/             Authentication state
-│   ├── .env.example             Frontend environment template
-│   └── vercel.json              SPA rewrite for Vercel
+│   └── .env.example             Frontend environment template
 ├── Backend/sitepass-backend/    Express/TypeScript API
 │   ├── src/routes/              Public and administrator API routes
 │   ├── src/middleware/          JWT administrator authentication
@@ -83,8 +82,7 @@ QR project/
 │   ├── prisma/schema.prisma     MySQL data model
 │   ├── prisma/migrations/       Database migrations
 │   ├── scripts/                 Bootstrap, email, integration, and management tests
-│   ├── api/index.ts             Vercel serverless entry point
-│   └── vercel.json              Vercel API configuration
+│   └── src/server.ts            Node server entry point
 ├── QR System - POC.pdf          Product proof-of-concept reference
 └── README.md                    This document
 ```
@@ -101,7 +99,7 @@ QR project/
 | Authentication | bcrypt, JSON Web Tokens, HTTP security headers, rate limiting |
 | Database | MySQL/MariaDB with Prisma 7 |
 | Email | Brevo SMTP API |
-| Hosting | Vercel configuration is included for both frontend and backend |
+| Hosting | Static frontend hosting and a long-running Node.js API |
 
 ### Dependencies installed by `npm install`
 
@@ -273,7 +271,7 @@ If the server was stopped, the next startup or relevant request closes overdue s
 
 Each automatic exit is recorded in Activity Logs as **Employee Automatically Checked Out (10 hours)** by **SYSTEM**, including the effective exit time and processing time. This is an assumed exit under the attendance policy, not confirmation of physical departure. The rule applies to employees; visitor sessions keep their existing workflow.
 
-On serverless deployments, request-time reconciliation remains active, but the minute timer does not run continuously. For database updates during periods with no traffic, run the long-running backend or configure a scheduled worker to call the `expireOpenAttendance` service.
+Keep the backend running so the minute timer can reconcile attendance even during periods with no traffic.
 
 The backend is an Express API. It connects to MySQL before listening and exits if the database connection cannot be established.
 
@@ -316,14 +314,13 @@ Do not edit an already-applied migration. Create a new migration for schema chan
 
 ## Configuration
 
-The backend does not currently include a committed `.env.example`, so create `Backend/sitepass-backend/.env` manually. Never commit it.
+Copy [Backend/sitepass-backend/.env.example](./Backend/sitepass-backend/.env.example) to `Backend/sitepass-backend/.env` and fill in the database credentials, JWT secret, and email settings. The template targets production at `https://qrsystem.com`; for local development, set `NODE_ENV=development` and `FRONTEND_URL=http://localhost:5173`. Never commit the actual `.env` file.
 
 ### Required backend variables
 
 ```dotenv
 # Prisma CLI migration connection
 DATABASE_URL=mysql://USER:PASSWORD@localhost:3306/sitepass_db
-SHADOW_DATABASE_URL=mysql://USER:PASSWORD@localhost:3306/sitepass_shadow
 
 # Runtime MariaDB adapter connection
 DATABASE_HOST=localhost
@@ -343,6 +340,9 @@ PORT=5001
 ### Optional backend variables
 
 ```dotenv
+# Development migrations only; omit in production.
+# SHADOW_DATABASE_URL=mysql://USER:PASSWORD@localhost:3306/sitepass_shadow
+
 BREVO_API_KEY=your-brevo-api-key
 BREVO_SENDER_EMAIL=no-reply@example.com
 BREVO_SENDER_NAME=SITEPASS
@@ -428,23 +428,17 @@ Integration tests use `SITEPASS_TEST_BASE_URL` when set, otherwise `http://local
 
 ## Deployment
 
-### Frontend on Vercel
+For the `qrsystem.com` DigitalOcean Droplet setup, follow the [deployment guide](./deploy/README.md), including the Nginx configuration, systemd service, production environment, migrations, and first administrator setup.
 
-1. Set the project root to `Frontend`.
-2. Use build command `npm run build` and output directory `dist`.
-3. Set `VITE_API_BASE_URL` to the deployed API base path or URL.
-4. Set `VITE_PUBLIC_APP_URL` to the public HTTPS frontend URL.
-5. Keep [Frontend/vercel.json](./Frontend/vercel.json) so client-side routes rewrite to `index.html`.
+### Frontend
 
-### Backend on Vercel
+Run `npm run build` in `Frontend` and serve the generated `dist` directory with a static web server. Configure a fallback to `index.html` for client-side routes. Set `VITE_API_BASE_URL` and `VITE_PUBLIC_APP_URL` before building for the target environment. When using `/api`, configure the web server to proxy that path to the backend; the Vite development proxy applies only during local development.
 
-1. Set the project root to `Backend/sitepass-backend`.
-2. Use [Backend/sitepass-backend/api/index.ts](./Backend/sitepass-backend/api/index.ts) as the serverless entry point.
-3. Keep [Backend/sitepass-backend/vercel.json](./Backend/sitepass-backend/vercel.json), which rewrites `/api/*` and sets a 30-second function duration.
-4. Configure database, JWT, CORS, public URL, and email variables in the deployment platform.
-5. Run migrations through a controlled deployment process before routing production traffic to a new schema.
+### Backend
 
-For a traditional Node host, run `npm run build` and start the API with `npm start`.
+Run `npm run build` in `Backend/sitepass-backend` to validate and bundle the Node server, and use `npm run start:prod` to run the compiled API. `npm start` still runs the TypeScript source for local use. Configure database, JWT, CORS, public URL, and email variables on the host. Run migrations through a controlled deployment process before routing production traffic to a new schema.
+
+Production uses only the main database: omit `SHADOW_DATABASE_URL` and make sure `DATABASE_URL` and the individual `DATABASE_*` variables point to the same production database. Run `npm run db:deploy` on the deployment host to apply committed migrations. Do not use `npm run db:migrate` in production; that command creates development migrations and uses a shadow database. Back up any existing production data before applying migrations. If importing an existing database, preserve its migration history or baseline it before applying migrations.
 
 ## Security notes
 

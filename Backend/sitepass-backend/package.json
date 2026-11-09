@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "start": "tsx src/server.ts",
+    "start:prod": "node dist/server.js",
+    "admin:create": "node dist/create-initial-admin.js",
     "build": "prisma generate && tsc --noEmit && tsup",
     "bootstrap:dev-admin": "tsx scripts/bootstrap-dev-admin.ts",
     "email:test": "tsx scripts/test-brevo-email.ts",
@@ -16,8 +18,10 @@
     "test:employees": "tsx scripts/test-employee-management.ts",
     "test:attendance-auto-exit": "tsx scripts/test-attendance-auto-exit.ts",
     "test:employee-validation": "tsx scripts/test-employee-validation.ts",
+    "test:deployment": "tsx scripts/test-deployment.ts",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
     "db:studio": "prisma studio"
   },
   "keywords": [

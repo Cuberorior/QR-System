@@ -14,12 +14,15 @@ import adminSitesRoutes from "./routes/admin-sites.routes";
 import adminEmailRoutes from "./routes/admin-email.routes";
 import adminDashboardRoutes, { auditRouter } from "./routes/admin-dashboard.routes";
 import safetyRoutes from "./routes/safety.routes";
+import { readHttpConfig } from "./config/runtime";
 
 const app = express();
+const httpConfig = readHttpConfig();
+app.set("trust proxy", httpConfig.trustProxy);
 
 app.use(helmet());
 app.use(cors({
-  origin: ["http://localhost:5173", "http://127.0.0.1:5173", process.env.FRONTEND_URL].filter((value): value is string => Boolean(value)),
+  origin: httpConfig.origins,
 }));
 
 app.use(express.json({ limit: "7mb" }));

@@ -1,0 +1,26 @@
+[Unit]
+Description=SITEPASS API
+After=network-online.target mysql.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=sitepass
+Group=sitepass
+WorkingDirectory=/opt/sitepass/Backend/sitepass-backend
+Environment=NODE_ENV=production
+# dotenv loads the backend .env from WorkingDirectory.
+# Adjust this executable path to match: command -v node
+ExecStart=/usr/bin/node /opt/sitepass/Backend/sitepass-backend/dist/server.js
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=20
+KillSignal=SIGTERM
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=full
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target
