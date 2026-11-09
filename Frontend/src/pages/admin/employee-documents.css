@@ -1,4 +1,5 @@
 .employee-documents-modal { width:min(100%,680px); }
+.employee-document-delete-backdrop { z-index:100; }
 .employee-document-form { display:grid; grid-template-columns:1fr 1fr; gap:13px; margin-top:20px; padding:15px; border:1px solid #e1e9f2; border-radius:10px; background:#f9fbfd; }
 .employee-document-form label { display:block; }
 .employee-document-form label > span { display:block; margin-bottom:6px; color:#4d6381; font-size:12px; font-weight:800; }

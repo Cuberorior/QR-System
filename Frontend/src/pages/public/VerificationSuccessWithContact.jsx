@@ -7,6 +7,17 @@ function Row({ label, value }) {
   return <div className="flex justify-between gap-4 text-sm"><span className="text-slate-500">{label}</span><strong className="text-right text-[#102a56]">{value || '—'}</strong></div>;
 }
 
+function formatDateTime(value) {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat('en-AU', {
+    day: '2-digit', month: 'short', year: 'numeric',
+    hour: 'numeric', minute: '2-digit', hour12: true,
+    timeZone: 'Australia/Sydney', timeZoneName: 'short',
+  }).format(date);
+}
+
 export default function VerificationSuccessWithContact() {
   const { siteId } = useParams();
   const nav = useNavigate();
@@ -32,8 +43,8 @@ export default function VerificationSuccessWithContact() {
       <Row label="Employee" value={employee.fullName} />
       <Row label="Employee ID" value={employee.employeeCode} />
       <Row label="Action" value={result.action} />
-      <Row label="Entry time" value={attendance.entryTime} />
-      {!entry && <Row label="Exit time" value={attendance.exitTime} />}
+      <Row label="Entry date & time" value={formatDateTime(attendance.entryTime)} />
+      {!entry && <Row label="Exit date & time" value={formatDateTime(attendance.exitTime)} />}
       <Row label="Status" value={attendance.status} />
     </div>
     {entry && workerIdExpiry?.isExpiringSoon && <section className="mt-6 flex gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-left text-amber-950" role="status">

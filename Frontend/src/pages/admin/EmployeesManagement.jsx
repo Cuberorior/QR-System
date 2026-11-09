@@ -257,6 +257,7 @@ function EmployeeDocumentsDialog({ employee, documents, loading, onClose, onRelo
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [removingId, setRemovingId] = useState('');
+  const [deleteTarget, setDeleteTarget] = useState(null);
   const fileInput = useRef(null);
   const workerIdDocument = documents.find(document => document.documentType === 'WORKER_ID') || null;
   const isExistingWorkerId = form.documentType === 'WORKER_ID' && Boolean(workerIdDocument);
@@ -270,7 +271,7 @@ function EmployeeDocumentsDialog({ employee, documents, loading, onClose, onRelo
     ...current,
     documentType,
     documentName: current.documentName === DOCUMENT_LABELS[current.documentType] ? DOCUMENT_LABELS[documentType] : current.documentName,
-    expiresAt: documentType === 'WORKER_ID' && workerIdDocument ? workerIdExpiry : current.expiresAt,
+    expiresAt: documentType === 'WORKER_ID' && workerIdDocument ? workerIdExpiry : '',
     file: documentType === 'WORKER_ID' && workerIdDocument ? null : current.file,
   }));
   const upload = async (event) => {
@@ -327,14 +328,15 @@ function EmployeeDocumentsDialog({ employee, documents, loading, onClose, onRelo
       toast.error(apiErrorMessage(viewError, 'Unable to open the document.'));
     }
   };
-  const remove = async (document) => {
-    if (!window.confirm(`Delete ${document.documentName}? This cannot be undone.`)) return;
+  const remove = async () => {
+    if (!deleteTarget) return;
+    const document = deleteTarget;
     setRemovingId(document.id);
     try { const response = await verificationApi.deleteEmployeeDocument(document.id); toast.success(response.data?.message || 'Employee document deleted.'); onReload(); }
     catch (removeError) { toast.error(apiErrorMessage(removeError, 'Unable to delete the document.')); }
-    finally { setRemovingId(''); }
+    finally { setRemovingId(''); setDeleteTarget(null); }
   };
-  return <div className="employee-modal-backdrop" role="presentation"><section className="employee-modal employee-documents-modal" role="dialog" aria-modal="true" aria-labelledby="employee-documents-title">
+  return <><div className="employee-modal-backdrop" role="presentation"><section className="employee-modal employee-documents-modal" role="dialog" aria-modal="true" aria-labelledby="employee-documents-title">
     <div className="employee-modal-heading"><div><span className="employee-modal-icon"><IdCard size={19} /></span><div><h2 id="employee-documents-title">Employee documents</h2><p>Manage Worker ID, medical certificates, insurance, and other records for {employee.fullName}.</p></div></div><button type="button" className="employee-close" onClick={onClose} disabled={saving} aria-label="Close dialog"><X size={19} /></button></div>
     <form onSubmit={upload} className="employee-document-form" noValidate>
       <div className="employee-document-types" aria-label="Document type">{Object.entries(DOCUMENT_LABELS).map(([value, label]) => <button type="button" key={value} className={form.documentType === value ? 'selected' : ''} onClick={() => updateType(value)} disabled={saving}>{label}</button>)}</div>
@@ -344,9 +346,11 @@ function EmployeeDocumentsDialog({ employee, documents, loading, onClose, onRelo
       {error && <p className="employee-form-error" role="alert"><ShieldAlert size={16} />{error}</p>}
       <div className="employee-modal-footer"><button type={isExistingWorkerId ? 'button' : 'submit'} className="btn btn-primary" onClick={isExistingWorkerId ? saveWorkerIdExpiry : undefined} disabled={saving}>{saving ? 'Saving…' : isExistingWorkerId ? 'Save expiry date' : <><Upload size={16} />Upload document</>}</button></div>
     </form>
-    <div className="employee-document-list"><h3>Saved documents</h3>{loading ? <p className="employee-document-empty">Loading documents…</p> : !documents.length ? <p className="employee-document-empty">No documents uploaded yet.</p> : documents.map(document => <article key={document.id} className="employee-document-row"><FileText size={20} /><div><strong>{document.documentName}</strong><small>{DOCUMENT_LABELS[document.documentType] || document.documentType} · {formatBytes(document.fileSize)}{document.expiresAt ? ` · Expires ${formatDate(document.expiresAt)}` : ''}</small></div><div className="employee-document-actions"><IconButton label={`View ${document.documentName}`} onClick={() => view(document)}><Eye size={15} /></IconButton><IconButton label={`Download ${document.documentName}`} onClick={() => download(document)}><Download size={15} /></IconButton><IconButton label={`Delete ${document.documentName}`} tone="danger" onClick={() => remove(document)} disabled={removingId === document.id}><Trash2 size={15} /></IconButton></div></article>)}</div>
-  </section></div>;
+    <div className="employee-document-list"><h3>Saved documents</h3>{loading ? <p className="employee-document-empty">Loading documents…</p> : !documents.length ? <p className="employee-document-empty">No documents uploaded yet.</p> : documents.map(document => <article key={document.id} className="employee-document-row"><FileText size={20} /><div><strong>{document.documentName}</strong><small>{DOCUMENT_LABELS[document.documentType] || document.documentType} · {formatBytes(document.fileSize)}{document.expiresAt ? ` · Expires ${formatDate(document.expiresAt)}` : ''}</small></div><div className="employee-document-actions"><IconButton label={`View ${document.documentName}`} onClick={() => view(document)}><Eye size={15} /></IconButton><IconButton label={`Download ${document.documentName}`} onClick={() => download(document)}><Download size={15} /></IconButton><IconButton label={`Delete ${document.documentName}`} tone="danger" onClick={() => setDeleteTarget(document)} disabled={removingId === document.id}><Trash2 size={15} /></IconButton></div></article>)}</div>
+  </section></div>{deleteTarget && <DeleteEmployeeDocumentDialog document={deleteTarget} deleting={removingId === deleteTarget.id} onCancel={() => !removingId && setDeleteTarget(null)} onConfirm={remove} />}</>;
 }
+
+function DeleteEmployeeDocumentDialog({ document, deleting, onCancel, onConfirm }) { return <div className="employee-modal-backdrop employee-document-delete-backdrop" role="presentation"><section className="employee-modal archive-modal" role="dialog" aria-modal="true" aria-labelledby="delete-document-title"><div className="archive-symbol"><Trash2 size={23} /></div><h2 id="delete-document-title">Delete document?</h2><p><b>{document.documentName}</b> will be permanently removed. This action cannot be undone.</p><div className="employee-modal-footer"><button type="button" className="btn btn-soft" onClick={onCancel} disabled={deleting}>Cancel</button><button type="button" className="btn archive-confirm" onClick={onConfirm} disabled={deleting}>{deleting ? 'Deleting…' : 'Delete document'}</button></div></section></div>; }
 
 function fileAsBase64(file) { return new Promise((resolve, reject) => { const reader = new FileReader(); reader.onerror = () => reject(new Error('The selected file could not be read.')); reader.onload = () => resolve(String(reader.result).split(',')[1]); reader.readAsDataURL(file); }); }
 function formatBytes(bytes) { return bytes < 1024 * 1024 ? `${Math.ceil(bytes / 1024)} KB` : `${(bytes / (1024 * 1024)).toFixed(1)} MB`; }

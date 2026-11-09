@@ -15,6 +15,7 @@ import EmployeeActionWorkflow from './pages/public/EmployeeActionWorkflowNumeric
 import VisitorAction from './pages/public/VisitorAction';
 import LegacyEmployeeNotice from './pages/public/LegacyEmployeeNotice';
 import VisitorRegistrationSecure from './pages/public/VisitorRegistrationSelfService';
+import VisitorVerificationSuccess from './pages/public/VisitorVerificationSuccess';
 
 // Admin pages
 import AdminLogin from './pages/auth/AdminLoginReal';
@@ -142,6 +143,11 @@ function AppRoutes() {
             <VisitorAction />
           </VerificationRequired>
         }
+      />
+
+      <Route
+        path="/verify/:siteId/:action/visitor/success"
+        element={<VisitorVerificationSuccess />}
       />
 
       {/* Verification success */}

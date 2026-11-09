@@ -19,7 +19,17 @@
 .site-presence i,.site-pill i { width:6px; height:6px; border-radius:50%; background:currentColor; }
 .site-presence.is-active { color:#7dd9b0; }
 .premium-shell .logout-button { width:100%; margin-top:15px; background:transparent; border:0; }
-.sidebar-footnote { font-size:10px; color:#809fbd; text-align:center; margin:14px 0 0; }
+.sidebar-credit { position:relative; margin:14px 0 0; color:#9bb4d0; font-size:10px; line-height:1.4; text-align:center; cursor:default; outline:0; }
+.sidebar-credit > span { display:inline-block; border-bottom:1px dashed transparent; transition:color .18s,border-color .18s; }
+.sidebar-credit:hover > span,.sidebar-credit:focus > span,.sidebar-credit:focus-within > span { color:#fff; border-color:#67e7c5; }
+.appz-makers-popover { position:fixed; z-index:100; box-sizing:border-box; padding:15px 14px 14px; border:1px solid #8f8da8; border-radius:14px; color:#fff; background:linear-gradient(145deg,#76738f 0%,#55536f 100%); box-shadow:0 14px 28px #010d22a8; text-align:center; }
+.appz-makers-popover::before { content:''; position:absolute; width:14px; height:14px; background:#686682; }
+.appz-makers-popover-above::before { bottom:-8px; left:50%; border-right:1px solid #8f8da8; border-bottom:1px solid #8f8da8; transform:translateX(-50%) rotate(45deg); }
+.appz-makers-logo { display:block; width:min(138px,100%); height:auto; margin:0 auto; }
+.appz-makers-popover p { margin:12px 0 9px; color:#fff; font-size:14px; font-weight:800; line-height:1.25; }
+.appz-makers-popover a { display:block; color:#43e2b2; font-size:15px; font-weight:800; text-decoration:none; }
+.appz-makers-popover a:hover,.appz-makers-popover a:focus-visible { color:#a0f5db; text-decoration:underline; }
+.appz-makers-website-note { display:block; margin-top:13px; color:#e0dfeb; font-size:11px; font-weight:700; }
 .admin-topbar { height:61px; display:flex; align-items:center; justify-content:space-between; gap:16px; padding:0 22px; background:white; border-bottom:1px solid #e0eaf4; }
 .topbar-location { display:flex; align-items:center; gap:12px; font-size:14px; color:#8a96a6; }
 .topbar-location strong { color:#31425b; font-weight:500; }

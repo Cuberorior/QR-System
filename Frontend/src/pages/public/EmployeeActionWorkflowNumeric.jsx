@@ -1,11 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Eye, EyeOff, ShieldCheck } from 'lucide-react';
+import { AlertCircle, ArrowLeft, Eye, EyeOff, ShieldCheck } from 'lucide-react';
 import PublicLayout from '../../components/layout/PublicLayoutReal';
 import SafetyChecklist from './SafetyChecklist';
 import { apiErrorMessage, verificationApi } from '../../services/api';
 import { clearVerificationSession, getVerificationSession } from '../../services/verificationSession';
-import { toast } from 'sonner';
 
 export default function EmployeeActionWorkflowNumeric() {
   const { siteId, action } = useParams();
@@ -16,6 +15,7 @@ export default function EmployeeActionWorkflowNumeric() {
   const [showAccessCode, setShowAccessCode] = useState(false);
   const [form, setForm] = useState({ employeeNumber: '', accessCode: '' });
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
     verificationApi.getSite(siteId)
@@ -26,6 +26,7 @@ export default function EmployeeActionWorkflowNumeric() {
   const submit = async event => {
     event.preventDefault();
     setLoading(true);
+    setErrorMessage('');
     try {
       const session = getVerificationSession(siteId);
       if (gpsEnabled && !session) throw new Error('Your location verification has expired. Please verify again.');
@@ -43,7 +44,7 @@ export default function EmployeeActionWorkflowNumeric() {
       clearVerificationSession();
       nav(`/verify/${siteId}/${action}/success`);
     } catch (error) {
-      toast.error(apiErrorMessage(error, 'Employee verification failed.'));
+      setErrorMessage(apiErrorMessage(error, 'Employee verification failed.'));
     } finally {
       setLoading(false);
     }
@@ -62,7 +63,7 @@ export default function EmployeeActionWorkflowNumeric() {
           <span className="text-sm font-semibold">Employee ID</span>
           <div className="employee-id-field mt-2">
             <span aria-hidden="true">EMP-</span>
-            <input required inputMode="numeric" pattern="[0-9]{1,3}" maxLength={3} autoComplete="off" placeholder="012" aria-label="Employee ID number after EMP prefix" value={form.employeeNumber} onChange={event => setForm({ ...form, employeeNumber: event.target.value.replace(/\D/g, '').slice(0, 3) })} />
+            <input required inputMode="numeric" pattern="[0-9]{1,3}" maxLength={3} autoComplete="off" placeholder="000" aria-label="Employee ID number after EMP prefix" value={form.employeeNumber} onChange={event => setForm({ ...form, employeeNumber: event.target.value.replace(/\D/g, '').slice(0, 3) })} />
           </div>
         </label>
         <label className="block">
@@ -74,6 +75,7 @@ export default function EmployeeActionWorkflowNumeric() {
             </button>
           </div>
         </label>
+        {errorMessage && <div className="flex gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-left text-sm text-red-700" role="alert"><AlertCircle size={20} className="mt-0.5 shrink-0"/><p className="leading-6">{errorMessage}</p></div>}
         <button className="btn btn-primary w-full" disabled={loading}>{loading ? 'Verifying…' : `Verify ${isEntry ? 'entry' : 'exit'}`}</button>
       </form>
     </div>}
