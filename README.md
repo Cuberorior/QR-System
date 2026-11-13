@@ -328,6 +328,8 @@ DATABASE_PORT=3306
 DATABASE_USER=sitepass_user
 DATABASE_PASSWORD=change-me
 DATABASE_NAME=sitepass_db
+# Enable only for a trusted local MySQL 8 connection using RSA password authentication without TLS.
+DATABASE_ALLOW_PUBLIC_KEY_RETRIEVAL=false
 
 # At least 32 characters; required for JWT signing
 JWT_SECRET=replace-with-a-long-random-secret

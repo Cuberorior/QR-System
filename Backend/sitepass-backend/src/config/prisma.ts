@@ -1,7 +1,7 @@
 import "dotenv/config";
 import { PrismaClient } from "../../generated/prisma/client";
 import { PrismaMariaDb } from "@prisma/adapter-mariadb";
-import { readDatabaseTls } from "./runtime";
+import { readDatabasePublicKeyRetrieval, readDatabaseTls } from "./runtime";
 
 const adapter = new PrismaMariaDb({
   host: process.env.DATABASE_HOST || "localhost",
@@ -11,6 +11,7 @@ const adapter = new PrismaMariaDb({
   database: process.env.DATABASE_NAME || "sitepass_db",
   connectionLimit: 5,
   ssl: readDatabaseTls(),
+  allowPublicKeyRetrieval: readDatabasePublicKeyRetrieval(),
 });
 
 export const prisma = new PrismaClient({ adapter });

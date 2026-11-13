@@ -11,6 +11,19 @@ export function readDatabaseTls(env: Environment = process.env) {
   return { rejectUnauthorized: true, ...(caPath ? { ca: readFileSync(caPath, "utf8") } : {}) };
 }
 
+/**
+ * MySQL 8 can require its RSA key during password authentication when TLS is
+ * disabled. Keep retrieval opt-in: it is appropriate for a trusted local
+ * database connection, while remote production databases should use TLS.
+ */
+export function readDatabasePublicKeyRetrieval(env: Environment = process.env) {
+  const value = env.DATABASE_ALLOW_PUBLIC_KEY_RETRIEVAL;
+  if (value && !["true", "false"].includes(value)) {
+    throw new Error("DATABASE_ALLOW_PUBLIC_KEY_RETRIEVAL must be true or false.");
+  }
+  return value === "true";
+}
+
 export function readHttpConfig(env: Environment = process.env) {
   const port = Number(env.PORT || 5001);
   if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error("PORT must be between 1 and 65535.");

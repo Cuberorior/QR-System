@@ -13,6 +13,8 @@
 .admin-main .content:has(.page-header) > .card.mt-5 { margin-top:12px; }
 .admin-main .content:has(.page-header) .card > .p-4,.admin-main .content:has(.page-header) .card > .border-b { padding:15px 17px; }
 .admin-main .content:has(.page-header) .field { min-height:39px; padding:8px 11px; border-color:#d4dfed; border-radius:7px; font-size:13px; }
+.admin-main .content:has(.page-header) .relative > .field.pl-9 { padding-left:2.25rem; }
+.admin-main .content:has(.page-header) .relative > svg.absolute.left-3 { top:50%; transform:translateY(-50%); pointer-events:none; }
 .admin-main .content:has(.page-header) .field:focus { border-color:#fa8b22; box-shadow:0 0 0 3px #ffab5e2e; }
 .admin-main .content:has(.page-header) label > span { color:#566e8e!important; font-size:11px!important; font-weight:800!important; }
 .admin-main .content:has(.page-header) h2 { color:#102d57!important; font-size:16px; font-weight:800!important; }

@@ -49,6 +49,7 @@ export const verificationApi = {
   createSite: (payload) => api.post('/admin/sites', payload),
   updateSite: (siteId, payload) => api.patch(`/admin/sites/${encodeURIComponent(siteId)}`, payload),
   updateSiteStatus: (siteId, isActive) => api.patch(`/admin/sites/${encodeURIComponent(siteId)}/status`, { isActive }),
+  deleteSite: (siteId) => api.delete(`/admin/sites/${encodeURIComponent(siteId)}`),
   getSiteQRCodes: (siteId) => api.get(`/admin/sites/${encodeURIComponent(siteId)}/qr-codes`),
   getDashboard: (siteCode) => api.get('/admin/dashboard', { params: siteCode ? { siteCode } : undefined }),
   listAuditLogs: (params) => api.get('/admin/audit-logs', { params }),

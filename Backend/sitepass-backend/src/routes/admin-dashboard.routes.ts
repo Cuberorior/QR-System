@@ -10,15 +10,14 @@ const router = Router(); router.use(requireAdmin);
 router.get("/", async (req, res) => {
   const requestedSiteCode = typeof req.query.siteCode === "string" ? req.query.siteCode.trim() : "";
   const authorized = await authorizedSiteIds(req.admin!.sub, req.admin!.role);
-  let siteIds = authorized ?? [];
+  const availableSiteIds = authorized ?? (await prisma.constructionSite.findMany({ select: { id: true } })).map((site) => site.id);
+  let siteIds = availableSiteIds;
   if (requestedSiteCode) {
     const site = await prisma.constructionSite.findUnique({ where: { siteCode: requestedSiteCode }, select: { id: true } });
     if (!site || (authorized && !authorized.includes(site.id))) return res.status(404).json({ success: false, message: "Construction site not found or not authorized." });
     siteIds = [site.id];
-  } else if (authorized === undefined) {
-    siteIds = (await prisma.constructionSite.findMany({ select: { id: true } })).map((site) => site.id);
   }
-  return res.json(await dashboardSummary(siteIds));
+  return res.json(await dashboardSummary(siteIds, availableSiteIds));
 });
 const auditQuerySchema = z.object({
   siteCode: z.string().trim().max(100).optional(),
@@ -91,7 +90,7 @@ export const auditRouter = Router(); auditRouter.use(requireAdmin); auditRouter.
     const site = await prisma.constructionSite.findUnique({ where: { siteCode }, select: { id: true } });
     const allowed = await authorizedSiteIds(req.admin!.sub, req.admin!.role);
     if (!site || (allowed && !allowed.includes(site.id))) return res.status(403).json({ success: false, message: "You are not authorized to view this site's audit logs." });
-    siteFilter = { OR: [{ entityType: "ConstructionSite", entityId: site.id }, { details: { path: ["siteCode"], equals: siteCode } }] };
+    siteFilter = { OR: [{ entityType: "ConstructionSite", entityId: site.id }, { details: { path: "$.siteCode", equals: siteCode } }] };
   }
   const categoryFilter = category ? { OR: [{ action: { in: categoryActions[category] } }, { entityType: categoryEntityTypes[category] }] } : undefined;
   const dateFilter = from || to ? { createdAt: { ...(from ? { gte: new Date(from) } : {}), ...(to ? { lte: new Date(to) } : {}) } } : undefined;
@@ -158,7 +157,7 @@ auditRouter.delete("/", async (req, res) => {
     const site = await prisma.constructionSite.findUnique({ where: { siteCode }, select: { id: true } });
     const allowed = await authorizedSiteIds(req.admin!.sub, req.admin!.role);
     if (!site || (allowed && !allowed.includes(site.id))) return res.status(403).json({ success: false, message: "You are not authorized to clear this site's activity logs." });
-    siteFilter = { OR: [{ entityType: "ConstructionSite", entityId: site.id }, { details: { path: ["siteCode"], equals: siteCode } }] };
+    siteFilter = { OR: [{ entityType: "ConstructionSite", entityId: site.id }, { details: { path: "$.siteCode", equals: siteCode } }] };
   }
   const categoryFilter = category ? { OR: [{ action: { in: categoryActions[category] } }, { entityType: categoryEntityTypes[category] }] } : undefined;
   const dateFilter = from || to ? { createdAt: { ...(from ? { gte: new Date(from) } : {}), ...(to ? { lte: new Date(to) } : {}) } } : undefined;

@@ -237,6 +237,8 @@ model VisitorVisit {
   exitTime                   DateTime?
   accessCodeHash             String?
   credentialExpiresAt        DateTime?
+  safetyResponses            Json?
+  safetySubmittedAt          DateTime?
   emailVerifiedAt            DateTime?
   emailVerificationTokenHash String?               @unique
   emailVerificationExpiresAt DateTime?

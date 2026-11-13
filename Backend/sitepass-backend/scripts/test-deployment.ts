@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { once } from "node:events";
 import { spawnSync } from "node:child_process";
-import { readHttpConfig, readDatabaseTls, validateProductionEnvironment } from "../src/config/runtime";
+import { readDatabasePublicKeyRetrieval, readHttpConfig, readDatabaseTls, validateProductionEnvironment } from "../src/config/runtime";
 
 const production = {
   NODE_ENV: "production", FRONTEND_URL: "https://qrsystem.com", TRUST_PROXY: "loopback",
@@ -24,6 +24,9 @@ assert.equal(readDatabaseTls({}), undefined);
 assert.deepEqual(readDatabaseTls({ DATABASE_SSL: "true" }), { rejectUnauthorized: true });
 assert.throws(() => readDatabaseTls({ DATABASE_SSL: "invalid" }), /DATABASE_SSL/);
 assert.throws(() => readDatabaseTls({ DATABASE_SSL_CA_PATH: "missing-sitepass-test-certificate.crt" }));
+assert.equal(readDatabasePublicKeyRetrieval({}), false);
+assert.equal(readDatabasePublicKeyRetrieval({ DATABASE_ALLOW_PUBLIC_KEY_RETRIEVAL: "true" }), true);
+assert.throws(() => readDatabasePublicKeyRetrieval({ DATABASE_ALLOW_PUBLIC_KEY_RETRIEVAL: "invalid" }), /DATABASE_ALLOW_PUBLIC_KEY_RETRIEVAL/);
 
 // Exercise the actual production bundles without opening a database connection.
 const bundleEnv = { ...process.env, ...production, DOTENV_CONFIG_PATH: "missing-deployment-test.env", DATABASE_SSL: "false", DATABASE_SSL_CA_PATH: "" };

@@ -1,10 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { Area, AreaChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { ArrowUpRight, ArrowRight, Building2, CalendarDays, Clock3, LogIn, LogOut, RefreshCw, Users, UserRoundCheck, AlertCircle, Activity } from 'lucide-react';
 import { apiErrorMessage, verificationApi } from '../../services/api';
-import { savedSiteCode } from '../../components/common/SiteSelector';
 import { useAuth } from '../../context/AuthContext';
 import constructionHero from '../../assets/sitepass-construction-hero.png';
 import './dashboard.css';
@@ -39,8 +38,9 @@ function DashboardSkeleton() {
 export default function DashboardReal() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const [siteCode, setSiteCode] = useState(savedSiteCode);
-  useEffect(() => { if (siteCode) sessionStorage.setItem('sitepass:admin-selected-site', siteCode); else sessionStorage.removeItem('sitepass:admin-selected-site'); }, [siteCode]);
+  // The dashboard is a workspace overview. Do not inherit a site selected on a
+  // management page, otherwise its totals can silently omit another active site.
+  const [siteCode, setSiteCode] = useState('');
   const { data, error, isPending, isFetching, refetch } = useQuery({ queryKey: ['admin-dashboard', user?.id, siteCode], queryFn: async () => (await verificationApi.getDashboard(siteCode)).data, retry: 1, refetchInterval: 60_000 });
   const refresh = () => { refetch(); queryClient.invalidateQueries({ queryKey: ['admin-shell-site'] }); };
   const timezone = data?.timezone || 'UTC';

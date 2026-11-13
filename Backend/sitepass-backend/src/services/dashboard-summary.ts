@@ -25,7 +25,7 @@ export function currentWeekRange(now: Date) {
   return { gte: weekStart, lt: weekEnd };
 }
 
-export async function dashboardSummary(siteIds: string[], now = new Date()) {
+export async function dashboardSummary(siteIds: string[], availableSiteIds = siteIds, now = new Date()) {
   await expireOpenAttendance(now, { siteId: { in: siteIds } });
   const days = dashboardDays(now);
   const today = days[6];
@@ -34,8 +34,8 @@ export async function dashboardSummary(siteIds: string[], now = new Date()) {
   const todayRange = { gte: today.start, lt: today.end };
   // A single consistent snapshot; bounded database counts, never full history downloads.
   return prisma.$transaction(async (tx) => {
-    const sites = await tx.constructionSite.findMany({ where: { id: { in: siteIds } }, select: { id: true, name: true, siteCode: true, isActive: true }, orderBy: { name: "asc" } });
-    const site = sites.length === 1 ? sites[0] : null;
+    const sites = await tx.constructionSite.findMany({ where: { id: { in: availableSiteIds } }, select: { id: true, name: true, siteCode: true, isActive: true }, orderBy: { name: "asc" } });
+    const site = siteIds.length === 1 ? sites.find((item) => item.id === siteIds[0]) || null : null;
     const checkedInEmployees = await tx.attendanceRecord.count({ where: { ...scope, status: "OPEN" } });
     const checkedInVisitors = await tx.visitorVisit.count({ where: { ...scope, visitStatus: "CHECKED_IN" } });
     const completedVisits = await tx.visitorVisit.count({ where: { ...scope, visitStatus: "CHECKED_OUT", exitTime: todayRange } });
