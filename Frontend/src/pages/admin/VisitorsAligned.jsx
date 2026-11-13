@@ -1,13 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Download, Filter, Mail, Search } from 'lucide-react';
 import PageHeader from '../../components/common/PageHeader';
 import ClearHistoryDialog from '../../components/common/ClearHistoryDialog';
 import StatusBadge from '../../components/common/StatusBadge';
-import SiteSelector, { savedSiteCode } from '../../components/common/SiteSelector';
+import SiteSelector from '../../components/common/SiteSelector';
 import { apiErrorMessage, verificationApi } from '../../services/api';
 import { toast } from 'sonner';
 
-const initial = { siteCode: savedSiteCode(), q: '', email: '', purpose: '', visitStatus: '', from: '', to: '', page: 1, pageSize: 25 };
+const initial = { siteCode: '', q: '', email: '', purpose: '', visitStatus: '', from: '', to: '', page: 1, pageSize: 25 };
 
 const requestParams = (filters, pagination = true) => ({
   ...(filters.siteCode ? { siteCode: filters.siteCode } : {}),
@@ -33,6 +33,7 @@ export default function VisitorsAligned() {
   const [exporting, setExporting] = useState(false);
   const [clearDialogOpen, setClearDialogOpen] = useState(false);
   const [clearing, setClearing] = useState(false);
+  const latestRequest = useRef(0);
 
   useEffect(() => {
     const open = () => setClearDialogOpen(true);
@@ -47,15 +48,18 @@ export default function VisitorsAligned() {
   }));
 
   const load = async () => {
+    const requestId = ++latestRequest.current;
     setLoading(true);
     try {
       const { data } = await verificationApi.listVisitors(requestParams(filters));
+      if (requestId !== latestRequest.current) return;
       setVisitors(data.visitors || []);
       setPage(data.pagination || { page: 1, pageSize: filters.pageSize, total: 0, totalPages: 0 });
     } catch (error) {
+      if (requestId !== latestRequest.current) return;
       toast.error(apiErrorMessage(error, 'Unable to load visitors.'));
     } finally {
-      setLoading(false);
+      if (requestId === latestRequest.current) setLoading(false);
     }
   };
 
